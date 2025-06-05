@@ -1,3 +1,3 @@
-# myweather
+# mytodo
 
 Nextjsのお勉強
