@@ -1,1 +1,3 @@
 # myweather
+
+Nextjsのお勉強
