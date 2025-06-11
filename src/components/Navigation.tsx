@@ -36,7 +36,7 @@ export const Navigation: FC<NavigationProps> = ({ open, id, onClose }) => {
         </li>
         <li>
           <a href="#" className="block p-2 hover:bg-gray-100 rounded">
-            看板
+            かんばん
           </a>
         </li>
       </ul>

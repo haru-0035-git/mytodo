@@ -80,7 +80,7 @@ function Column({ id, items }: { id: ColumnId; items: ItemId[] }) {
     >
       <div
         ref={setNodeRef}
-        className="flex flex-wrap flex-1 p-2 mx-2 bg-gray-100 rounded-lg min-h-[200px] content-start"
+        className="flex flex-wrap flex-1 p-2 mx-2 bg-gray-300 rounded-lg min-h-[200px] content-start"
       >
         <h3
           className={`w-full px-2 pb-2 text-lg font-semibold ${columnTitleColor[id]}`}
