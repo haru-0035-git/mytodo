@@ -1,70 +1,38 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { ToggleButton } from "./ToggleButton";
-import { Navigation } from "./Navigation";
-import { UserMenu } from "./UserMenu"; // UserMenuをインポート
-import { useClickOutside } from "../hooks/useClickOutside"; // カスタムフックをインポート
+// ToggleButtonのインポートは不要になる
+import { UserMenu } from "./UserMenu";
+import { useClickOutside } from "../hooks/useClickOutside";
 
-const Header: React.FC = () => {
-  // 1. メニューごとに独立したstateとrefを用意
-  const [isNavOpen, setNavOpen] = useState(false);
+// isNavOpen, toggleNav を受け取らないようにする
+export const Header: React.FC = () => {
   const [isUserMenuOpen, setUserMenuOpen] = useState(false);
-
-  const navMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // 2. カスタムフックを使って、それぞれのメニューを閉じるロジックを適用
-  useClickOutside(navMenuRef, () => setNavOpen(false));
   useClickOutside(userMenuRef, () => setUserMenuOpen(false));
-
-  // 3. 片方のメニューが開いたら、もう片方は閉じるようにする
-  const toggleNavMenu = () => {
-    setNavOpen((prev) => !prev);
-    if (!isNavOpen) {
-      setUserMenuOpen(false); // ユーザーメニューを閉じる
-    }
-  };
 
   const toggleUserMenu = () => {
     setUserMenuOpen((prev) => !prev);
-    if (!isUserMenuOpen) {
-      setNavOpen(false); // ナビゲーションメニューを閉じる
-    }
   };
 
+  // ToggleButtonを表示していた部分を削除
   return (
-    <header className="relative text-black p-4 w-full flex flex-row items-center z-20">
-      {/* 左側のナビゲーションメニュー */}
-      <div className="basis-1/20" ref={navMenuRef}>
-        <ToggleButton
-          open={isNavOpen}
-          controls="navigation"
-          label="メニューを開く"
-          onClick={toggleNavMenu}
-        />
-        <Navigation
-          open={isNavOpen}
-          id="navigation"
-          onClose={() => setNavOpen(false)}
-        />
-      </div>
-
-      <h1 className="text-4xl font-bold text-left basis-10/20 ml-4">
+    <header className="relative bg-white text-black p-4 w-full flex flex-row items-center border-b z-10">
+      {/* タイトルがヘッダーの左端から始まるように調整 */}
+      <h1 className="text-2xl md:text-4xl font-bold text-left basis-1/2 md:basis-10/20 ml-16">
         ToDo App
       </h1>
 
-      {/* 右側のユーザーメニュー */}
+      {/* 右側のユーザーメニュー (変更なし) */}
       <div
-        className="basis-9/20 flex justify-end items-center"
+        className="basis-1/2 md:basis-9/20 flex justify-end items-center"
         ref={userMenuRef}
       >
         <button
-          onClick={toggleUserMenu} // 円形ボタンにtoggle機能を設定
+          onClick={toggleUserMenu}
           aria-expanded={isUserMenuOpen}
-          aria-haspopup="true"
-          aria-controls="user-menu"
-          className="h-10 w-10 bg-black text-white rounded-full flex items-center justify-center"
+          className="h-10 w-10 bg-gray-200 text-black rounded-full flex items-center justify-center font-bold"
         >
           O
         </button>
@@ -76,4 +44,3 @@ const Header: React.FC = () => {
     </header>
   );
 };
-export default Header;

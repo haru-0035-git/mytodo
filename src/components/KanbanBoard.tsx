@@ -16,13 +16,13 @@ import {
 import {
   SortableContext,
   arrayMove,
-  horizontalListSortingStrategy, // 変更点1
+  verticalListSortingStrategy, // 変更
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 type ItemId = string;
-type ColumnId = "未着手" | "作業中" | "完了";
+type ColumnId = "ToDo" | "Doing" | "Done";
 interface ItemsState {
   [key: string]: ItemId[];
 }
@@ -41,9 +41,9 @@ function SortableItem({ id, isOverlay }: { id: ItemId; isOverlay?: boolean }) {
     transition: transition || "transform 250ms ease",
   };
 
-  // 変更点2: マージンを mb-2 から m-1 に変更
+  // スタイルを変更
   const itemClasses = `
-    w-24 h-24 m-1 rounded-md shadow-sm cursor-grab
+    w-full h-24 mb-2 rounded-md shadow-sm cursor-grab
     flex items-center justify-center text-center p-2
     ${isOverlay ? "bg-blue-100 shadow-lg" : "bg-white"}
     ${isDragging ? "opacity-50" : "opacity-100"}
@@ -63,24 +63,25 @@ function SortableItem({ id, isOverlay }: { id: ItemId; isOverlay?: boolean }) {
 }
 
 const columnTitleColor: { [key in ColumnId]: string } = {
-  未着手: "text-gray-500",
-  作業中: "text-blue-600",
-  完了: "text-green-600",
+  ToDo: "text-red-500",
+  Doing: "text-blue-600",
+  Done: "text-green-600",
 };
 
 function Column({ id, items }: { id: ColumnId; items: ItemId[] }) {
   const { setNodeRef } = useSortable({ id, data: { isContainer: true } });
 
   return (
-    // 変更点3: strategyとclassNameを変更
+    // strategy を変更
     <SortableContext
       id={id}
       items={items}
-      strategy={horizontalListSortingStrategy}
+      strategy={verticalListSortingStrategy}
     >
       <div
         ref={setNodeRef}
-        className="flex flex-wrap flex-1 p-2 mx-2 bg-gray-300 rounded-lg min-h-[200px] content-start"
+        // classNameは元のままでも機能しますが、意図を明確にするため flex-col にしても良いでしょう
+        className="flex flex-col flex-1 p-2 mx-2 bg-gray-300 rounded-lg min-h-[200px]"
       >
         <h3
           className={`w-full px-2 pb-2 text-lg font-semibold ${columnTitleColor[id]}`}
@@ -98,7 +99,7 @@ function Column({ id, items }: { id: ColumnId; items: ItemId[] }) {
 // KanbanBoard本体のロジックは変更なし
 export default function KanbanBoard() {
   const [items, setItems] = useState<ItemsState>({
-    未着手: [
+    ToDo: [
       "タスク 1",
       "タスク 2",
       "タスク 3",
@@ -106,8 +107,8 @@ export default function KanbanBoard() {
       "タスク B",
       "タスク C",
     ],
-    作業中: ["タスク 4", "タスク 5"],
-    完了: ["タスク 6"],
+    Doing: ["タスク 4", "タスク 5"],
+    Done: ["タスク 6"],
   });
 
   const [activeId, setActiveId] = useState<ItemId | null>(null);
@@ -142,6 +143,7 @@ export default function KanbanBoard() {
       const newActiveItems = [...activeItems];
       const [movedItem] = newActiveItems.splice(activeIndex, 1);
       const newOverItems = [...overItems];
+      // Note: overIndex can be -1 if hovering over container, not an item
       const insertIndex = overIndex !== -1 ? overIndex : newOverItems.length;
       newOverItems.splice(insertIndex, 0, movedItem);
       return {
