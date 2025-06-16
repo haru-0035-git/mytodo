@@ -21,7 +21,7 @@ export const Header: React.FC = () => {
     <header className="relative bg-white text-black p-4 w-full flex flex-row items-center border-b z-10">
       {/* タイトルがヘッダーの左端から始まるように調整 */}
       <h1 className="text-2xl md:text-4xl font-bold text-left basis-1/2 md:basis-10/20 ml-16">
-        ToDo App
+        TaskFlow
       </h1>
 
       {/* 右側のユーザーメニュー (変更なし) */}
