@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs"; // useAuthフックをインポート
 import Layout from "@/components/Layout";
 import KanbanBoard from "@/components/KanbanBoard";
 import Footer from "@/components/Footer";
-import { TaskFormModal } from "@/components/TaskFormModal"; // 新しいモーダルをインポート
+import { TaskFormModal } from "@/components/TaskFormModal";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { Task, ItemsState } from "@/types/task";
 
@@ -15,23 +16,37 @@ export default function Home() {
     Done: [],
   });
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null); // ★★★ 編集対象のタスクを管理するstate
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const { isSignedIn } = useAuth(); // ログイン状態を取得
 
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
-  const [isNavOpen, setNavOpen] = useState(false); // ★★★ デフォルトは閉じた状態に
+  const [isNavOpen, setNavOpen] = useState(false);
   useEffect(() => {
     setNavOpen(isLargeScreen);
   }, [isLargeScreen]);
   const toggleNav = () => setNavOpen((prev) => !prev);
 
-  // ★★★ モーダルを開くための関数群 ★★★
+  // ★★★ 変更点 1: ログイン時にAPIからタスクを読み込む ★★★
+  useEffect(() => {
+    if (isSignedIn) {
+      const fetchTasks = async () => {
+        const response = await fetch("/api/tasks");
+        if (response.ok) {
+          const data = await response.json();
+          setItems(data);
+        }
+      };
+      fetchTasks();
+    }
+  }, [isSignedIn]); // ログイン状態が変わったら再取得
+
   const handleOpenAddTaskModal = () => {
-    setTaskToEdit(null); // 編集対象がない＝新規追加
+    setTaskToEdit(null);
     setIsFormModalOpen(true);
   };
 
   const handleOpenEditTaskModal = (task: Task) => {
-    setTaskToEdit(task); // 編集対象のタスクをセット
+    setTaskToEdit(task);
     setIsFormModalOpen(true);
   };
 
@@ -40,26 +55,26 @@ export default function Home() {
     setTaskToEdit(null);
   };
 
-  // ★★★ フォームが送信された時の処理 ★★★
-  const handleFormSubmit = (taskData: Omit<Task, "id">, id?: string) => {
+  // ★★★ 変更点 2: フォーム送信時にAPIを呼び出すように変更 ★★★
+  const handleFormSubmit = async (taskData: Omit<Task, "id">, id?: string) => {
     if (id) {
-      // idがあれば編集モード
-      setItems((prevItems) => {
-        const newItems = { ...prevItems };
-        for (const column in newItems) {
-          newItems[column as keyof ItemsState] = newItems[
-            column as keyof ItemsState
-          ].map((task) => (task.id === id ? { ...task, ...taskData } : task));
-        }
-        return newItems;
-      });
+      // (編集機能は今後のステップで実装)
     } else {
-      // idがなければ新規追加モード
-      const newTask: Task = { id: `task-${Date.now()}`, ...taskData };
-      setItems((prevItems) => ({
-        ...prevItems,
-        ToDo: [...prevItems.ToDo, newTask],
-      }));
+      // 新規追加モード
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(taskData),
+      });
+
+      if (response.ok) {
+        const newTask = await response.json();
+        // フロントエンドの状態を更新
+        setItems((prevItems) => ({
+          ...prevItems,
+          ToDo: [...prevItems.ToDo, newTask],
+        }));
+      }
     }
   };
 
@@ -72,11 +87,20 @@ export default function Home() {
         toggleNav={toggleNav}
         onOpenModal={handleOpenAddTaskModal}
       >
-        <KanbanBoard
-          items={items}
-          setItems={setItems}
-          onEditTask={handleOpenEditTaskModal}
-        />
+        {/* ★★★ 変更点 3: ログインしていない時の表示を追加 ★★★ */}
+        {isSignedIn ? (
+          <KanbanBoard
+            items={items}
+            setItems={setItems}
+            onEditTask={handleOpenEditTaskModal}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-lg text-gray-500">
+              タスクボードを表示するにはサインインしてください。
+            </p>
+          </div>
+        )}
       </Layout>
 
       <TaskFormModal

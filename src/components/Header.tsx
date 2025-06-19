@@ -1,45 +1,29 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-// ToggleButtonのインポートは不要になる
-import { UserMenu } from "./UserMenu";
-import { useClickOutside } from "../hooks/useClickOutside";
+import React from "react";
+import { UserButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import Link from "next/link"; // next/linkをインポート
 
-// isNavOpen, toggleNav を受け取らないようにする
 export const Header: React.FC = () => {
-  const [isUserMenuOpen, setUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-
-  useClickOutside(userMenuRef, () => setUserMenuOpen(false));
-
-  const toggleUserMenu = () => {
-    setUserMenuOpen((prev) => !prev);
-  };
-
-  // ToggleButtonを表示していた部分を削除
   return (
     <header className="relative bg-white text-black p-4 w-full flex flex-row items-center border-b z-10">
-      {/* タイトルがヘッダーの左端から始まるように調整 */}
       <h1 className="text-2xl md:text-4xl font-bold text-left basis-1/2 md:basis-10/20 ml-16">
         TaskFlow
       </h1>
 
-      {/* 右側のユーザーメニュー (変更なし) */}
-      <div
-        className="basis-1/2 md:basis-9/20 flex justify-end items-center"
-        ref={userMenuRef}
-      >
-        <button
-          onClick={toggleUserMenu}
-          aria-expanded={isUserMenuOpen}
-          className="h-10 w-10 bg-gray-200 text-black rounded-full flex items-center justify-center font-bold"
-        >
-          O
-        </button>
-        <UserMenu
-          open={isUserMenuOpen}
-          onClose={() => setUserMenuOpen(false)}
-        />
+      <div className="basis-1/2 md:basis-9/20 flex justify-end items-center">
+        <SignedIn>
+          <UserButton afterSignOutUrl="/" />
+        </SignedIn>
+
+        {/* ★★★ 変更点: SignInButtonを通常のLinkに変更 ★★★ */}
+        <SignedOut>
+          <Link href="/sign-in">
+            <div className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 cursor-pointer">
+              サインイン
+            </div>
+          </Link>
+        </SignedOut>
       </div>
     </header>
   );

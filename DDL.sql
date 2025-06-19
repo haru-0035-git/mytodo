@@ -1,5 +1,7 @@
+    -- ★★★ このカラムを追加 ★★★
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    clerk_user_id VARCHAR(255) NOT NULL UNIQUE, -- Clerkが発行する一意のユーザーIDを保存
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -26,7 +28,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 
-insert into task_statuses (name) values ('未着手'), ('継続中'), ('完了'), ('中止');
+insert into task_statuses (name) values ('ToDo'), ('Doing'), ('Done'), ('canceled');
 insert into users (name, email) values ('山田太郎', 'aaa@aaa.com'), ('佐藤花子', 'bbb@bbb.com');
 insert into tasks (user_id, title, description, status_id, tags, limited_at)
 values 

@@ -1,9 +1,16 @@
+# 秘密情報
+.env
+.env.local
+
+# Gitリポジトリ情報
+.git
+
+# Next.jsのビルドキャッシュと依存関係
+.next
 node_modules
 
-.next
-
+# その他
+npm-debug.log
+README.md
 Dockerfile
 docker-compose.yml
-
-.env
-README.md

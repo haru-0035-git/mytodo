@@ -1,20 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { jaJP } from "@clerk/localizations";
 import "./globals.css";
+// import { Inter } from "next/font/google"; // デフォルトのフォント読み込みを簡略化
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// const inter = Inter({ subsets: ["latin"] }); // 使われていなければ削除
 
 export const metadata: Metadata = {
-  title: "TasksFlow",
-  description: "ToDoアプリケーション",
+  title: "TaskFlow",
+  description: "直感的な操作でタスクを管理できるカンバンボードアプリです。",
 };
 
 export default function RootLayout({
@@ -23,12 +17,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
-    </html>
+    <ClerkProvider localization={jaJP}>
+      {/* <body>タグからフォントクラスを削除 */}
+      <html lang="ja">
+        <body>{children}</body>
+      </html>
+    </ClerkProvider>
   );
 }

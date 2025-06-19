@@ -1,48 +1,59 @@
 version: "3.8"
 
 services:
-  # 1. Next.jsアプリケーションのサービス
+  # Next.jsアプリケーションのサービス
   next-app:
-    # カレントディレクトリのDockerfileを使ってビルド
-    build: .
+    build:
+      context: .
+      args:
+        - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        - NEXT_PUBLIC_CLERK_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_SIGN_IN_URL}
+        - NEXT_PUBLIC_CLERK_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_SIGN_UP_URL}
+        - NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}
+        - NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL}
     container_name: todo_app
     ports:
-      # ホストの3000番ポートをコンテナの3000番ポートに接続
-      - "3001:3001"
-    volumes:
-      # ホストのカレントディレクトリをコンテナの/appにマウント（同期）
-      # これでコード変更が即時反映される（ホットリロード）
-      - .:/app
-      # ただし、node_modulesはコンテナ内のものを使い続ける（重要）
-      - /app/node_modules
-    # .envファイルから環境変数を読み込む
+      - "3001:3000"
     env_file:
       - .env
-    # dbサービスが起動してからnext-appを起動する
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    # ★★★ 変更点: デバッグ用のコマンドを削除 ★★★
+    # これにより、Dockerfileで指定された本番用のCMDが実行されます。
 
-  # 2. MySQLデータベースのサービス
+  # MySQLデータベースのサービス
   db:
-    # 公式のMySQLイメージを使用
     image: mysql:8.0
     container_name: mysql
-    # コンテナが落ちても常に再起動
     restart: always
-    # .envファイルから環境変数を読み込んでMySQLを設定
+    env_file:
+      - .env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      # ホストの3306番ポートをコンテナの3306番ポートに接続
-      # （MySQL Workbench等で外部から接続したい場合に便利）
       - "3307:3306"
     volumes:
-      # データを永続化するために名前付きボリュームを使用
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-# データベースのデータを永続化するためのボリュームを定義
 volumes:
   mysql-data:

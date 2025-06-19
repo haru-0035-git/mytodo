@@ -5,28 +5,23 @@ import { PlusIcon } from "@heroicons/react/24/outline";
 
 interface NavigationProps {
   open: boolean;
-  isLargeScreen: boolean;
   onClose: () => void;
   onOpenModal: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
   open,
-  isLargeScreen,
   onClose,
   onOpenModal,
 }) => {
   const navClasses = `
     fixed
     top-0 left-0
-    h-screen
+    h-screen bg-gray-100
+    border-r border-gray-200
+    flex flex-col
     transition-transform duration-300 ease-in-out z-30
     w-80
-    
-    // ★★★ 変更点: 背景色と境界線のスタイルを変更 ★★★
-    bg-gray-100 // 背景色を白からページの背景と同じグレーに変更
-    border-r border-gray-200 // 影の代わりに右側に境界線を追加
-
     ${open ? "translate-x-0" : "-translate-x-full"}
   `;
 
@@ -65,7 +60,6 @@ export const Navigation: React.FC<NavigationProps> = ({
           </ul>
         </div>
       </nav>
-      {/* 小画面でメニューが開いている時に背景をクリックして閉じるためのオーバーレイ */}
       <div className={overlayClasses} onClick={onClose} />
     </>
   );
