@@ -5,7 +5,6 @@ import { Header } from "./Header";
 import { Navigation } from "./Navigation";
 import { ToggleButton } from "./ToggleButton";
 
-// Layoutコンポーネントが受け取るProps（プロパティ）の型定義
 interface LayoutProps {
   children: React.ReactNode;
   footer: React.ReactNode;
@@ -13,6 +12,7 @@ interface LayoutProps {
   isLargeScreen: boolean;
   toggleNav: () => void;
   onOpenModal: () => void;
+  isSignedIn: boolean; // ★★★ 追加
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -22,14 +22,15 @@ const Layout: React.FC<LayoutProps> = ({
   isLargeScreen,
   toggleNav,
   onOpenModal,
+  isSignedIn, // ★★★ 追加
 }) => {
   return (
     <div className="relative flex min-h-screen bg-gray-100">
       <Navigation
         open={isNavOpen}
-        // ★★★ 変更点: isLargeScreenプロパティを削除 ★★★
         onClose={toggleNav}
         onOpenModal={onOpenModal}
+        isSignedIn={isSignedIn} // ★★★ 追加
       />
 
       <div className="fixed top-4 left-4 z-40">

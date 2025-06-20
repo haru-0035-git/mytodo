@@ -3,16 +3,19 @@
 import React from "react";
 import { PlusIcon } from "@heroicons/react/24/outline";
 
+// isSignedInプロパティを追加
 interface NavigationProps {
   open: boolean;
   onClose: () => void;
   onOpenModal: () => void;
+  isSignedIn: boolean; // ★★★ 追加
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
   open,
   onClose,
   onOpenModal,
+  isSignedIn,
 }) => {
   const navClasses = `
     fixed
@@ -40,15 +43,18 @@ export const Navigation: React.FC<NavigationProps> = ({
             メニュー
           </h2>
           <ul className="space-y-2">
-            <li>
-              <button
-                onClick={onOpenModal}
-                className="w-full flex items-center gap-2 p-2 text-black hover:bg-gray-200 rounded"
-              >
-                <PlusIcon className="h-5 w-5" />
-                <span>タスクを追加</span>
-              </button>
-            </li>
+            {/* ★★★ ログインしている時のみボタンを表示 ★★★ */}
+            {isSignedIn && (
+              <li>
+                <button
+                  onClick={onOpenModal}
+                  className="w-full flex items-center gap-2 p-2 text-black hover:bg-gray-200 rounded"
+                >
+                  <PlusIcon className="h-5 w-5" />
+                  <span>タスクを追加</span>
+                </button>
+              </li>
+            )}
             <li>
               <a
                 href="#"

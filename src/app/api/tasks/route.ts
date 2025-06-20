@@ -24,23 +24,23 @@ export async function GET() {
     }
     const internalUserId = userResult[0].id;
 
-    const tasks = await query<TaskWithStatus[]>(
-      `SELECT t.*, ts.name as status FROM tasks t 
-       JOIN task_statuses ts ON t.status_id = ts.id 
-       WHERE t.user_id = ?`,
-      [internalUserId]
-    );
+    // ★★★ 変更点: SQLクエリを安全な配列結合形式に修正 ★★★
+    const sql = [
+      "SELECT t.*, ts.name as status",
+      "FROM tasks t",
+      "JOIN task_statuses ts ON t.status_id = ts.id",
+      "WHERE t.user_id = ?",
+    ].join(" "); // 半角スペースで結合する
+
+    const tasks = await query<TaskWithStatus[]>(sql, [internalUserId]);
 
     const categorizedTasks: ItemsState = { ToDo: [], Doing: [], Done: [] };
 
-    // ★★★ 変更点: データ分類ロジックをより安全なものに修正 ★★★
     tasks.forEach((task) => {
       const status = task.status;
-      // task.status が 'ToDo', 'Doing', 'Done' のいずれかであることを確認してから追加する
       if (status && categorizedTasks.hasOwnProperty(status)) {
         categorizedTasks[status].push(task);
       } else {
-        // 予期しないステータスのタスクが見つかった場合にログを出力
         console.warn(
           `Task with id ${task.id} has an unknown or null status: ${status}`
         );
@@ -49,7 +49,7 @@ export async function GET() {
 
     return NextResponse.json(categorizedTasks);
   } catch (error) {
-    console.error("API GET Error:", error); // エラーをコンソールに出力
+    console.error("API GET Error:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(

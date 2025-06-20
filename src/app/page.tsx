@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "@clerk/nextjs"; // useAuthフックをインポート
+import { useAuth } from "@clerk/nextjs";
 import Layout from "@/components/Layout";
 import KanbanBoard from "@/components/KanbanBoard";
 import Footer from "@/components/Footer";
 import { TaskFormModal } from "@/components/TaskFormModal";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import type { Task, ItemsState } from "@/types/task";
+import type { Task, ItemsState, ColumnId } from "@/types/task";
 
 export default function Home() {
   const [items, setItems] = useState<ItemsState>({
@@ -17,7 +17,7 @@ export default function Home() {
   });
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-  const { isSignedIn } = useAuth(); // ログイン状態を取得
+  const { isSignedIn } = useAuth();
 
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
   const [isNavOpen, setNavOpen] = useState(false);
@@ -26,7 +26,6 @@ export default function Home() {
   }, [isLargeScreen]);
   const toggleNav = () => setNavOpen((prev) => !prev);
 
-  // ★★★ 変更点 1: ログイン時にAPIからタスクを読み込む ★★★
   useEffect(() => {
     if (isSignedIn) {
       const fetchTasks = async () => {
@@ -37,8 +36,10 @@ export default function Home() {
         }
       };
       fetchTasks();
+    } else {
+      setItems({ ToDo: [], Doing: [], Done: [] });
     }
-  }, [isSignedIn]); // ログイン状態が変わったら再取得
+  }, [isSignedIn]);
 
   const handleOpenAddTaskModal = () => {
     setTaskToEdit(null);
@@ -55,26 +56,55 @@ export default function Home() {
     setTaskToEdit(null);
   };
 
-  // ★★★ 変更点 2: フォーム送信時にAPIを呼び出すように変更 ★★★
   const handleFormSubmit = async (taskData: Omit<Task, "id">, id?: string) => {
     if (id) {
-      // (編集機能は今後のステップで実装)
-    } else {
-      // 新規追加モード
-      const response = await fetch("/api/tasks", {
-        method: "POST",
+      const response = await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(taskData),
       });
 
       if (response.ok) {
-        const newTask = await response.json();
-        // フロントエンドの状態を更新
-        setItems((prevItems) => ({
-          ...prevItems,
-          ToDo: [...prevItems.ToDo, newTask],
-        }));
+        const updatedTask = await response.json();
+        setItems((prevItems) => {
+          const newItems = { ...prevItems };
+          for (const columnKey in newItems) {
+            const key = columnKey as ColumnId;
+            newItems[key] = newItems[key].map((task) =>
+              task.id === id ? { ...task, ...updatedTask } : task
+            );
+          }
+          return newItems;
+        });
       }
+    } else {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(taskData),
+      });
+      if (response.ok) {
+        const newTask = await response.json();
+        setItems((prev) => ({ ...prev, ToDo: [...prev.ToDo, newTask] }));
+      }
+    }
+  };
+
+  const handleStatusChange = async (
+    taskId: string,
+    newStatusName: ColumnId
+  ) => {
+    // フロントエンドのUIはdnd-kitによって楽観的に更新済みなので、
+    // ここではバックエンドのデータベースを更新するAPIを呼び出すだけ。
+    // エラー時のロールバック処理は、より堅牢な実装で検討します。
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newStatusName }),
+      });
+    } catch (error) {
+      console.error("Failed to update task status:", error);
     }
   };
 
@@ -86,13 +116,14 @@ export default function Home() {
         isLargeScreen={isLargeScreen}
         toggleNav={toggleNav}
         onOpenModal={handleOpenAddTaskModal}
+        isSignedIn={!!isSignedIn}
       >
-        {/* ★★★ 変更点 3: ログインしていない時の表示を追加 ★★★ */}
         {isSignedIn ? (
           <KanbanBoard
             items={items}
             setItems={setItems}
             onEditTask={handleOpenEditTaskModal}
+            onStatusChange={handleStatusChange}
           />
         ) : (
           <div className="flex items-center justify-center h-full">

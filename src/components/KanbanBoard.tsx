@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react"; // useEffectを削除
+import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -73,7 +73,6 @@ function SortableItem({
       onDoubleClick={() => onEditTask(task)}
     >
       <div className="w-full text-black">
-        {/* 'node'引数を使わないように修正 */}
         <ReactMarkdown
           components={{
             p: ({ children }) => <>{children}</>,
@@ -206,13 +205,18 @@ export default function KanbanBoard({
   items,
   setItems,
   onEditTask,
+  onStatusChange,
 }: {
   items: ItemsState;
   setItems: React.Dispatch<React.SetStateAction<ItemsState>>;
   onEditTask: (task: Task) => void;
+  onStatusChange: (taskId: string, newStatusName: ColumnId) => void;
 }) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [initialContainer, setInitialContainer] = useState<ColumnId | null>(
+    null
+  ); // ★★★ 1. 最初のカラムを記憶するstateを追加
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
@@ -240,9 +244,11 @@ export default function KanbanBoard({
   };
 
   const handleDragStart = (event: DragStartEvent) => {
-    const task = findTaskById(event.active.id as string);
+    const taskId = event.active.id as string;
+    const task = findTaskById(taskId);
     setActiveTask(task);
     setExpandedTaskId(null);
+    setInitialContainer(findContainer(taskId) || null); // ★★★ 2. ドラッグ開始時のカラムを記憶
     document.body.classList.add("grabbing-custom");
   };
 
@@ -252,7 +258,12 @@ export default function KanbanBoard({
     const activeId = active.id as string;
     const overId = over.id as string;
     const activeContainer = findContainer(activeId);
-    const overContainer = findContainer(overId);
+    let overContainer = findContainer(overId);
+
+    if (over.data.current?.isContainer) {
+      overContainer = over.id as ColumnId;
+    }
+
     if (!activeContainer || !overContainer || activeContainer === overContainer)
       return;
 
@@ -280,39 +291,31 @@ export default function KanbanBoard({
 
   const handleDragEnd = (event: DragEndEvent) => {
     document.body.classList.remove("grabbing-custom");
-    const { active, over } = event;
-    if (!over) {
-      setActiveTask(null);
-      return;
-    }
-    if (active.id !== over.id) {
-      const activeContainer = findContainer(active.id as string);
-      const overContainer = findContainer(over.id as string) || activeContainer;
-      if (
-        activeContainer &&
-        overContainer &&
-        activeContainer === overContainer
-      ) {
-        setItems((currentItems) => {
-          const itemsInContainer = currentItems[activeContainer];
-          const oldIndex = itemsInContainer.findIndex(
-            (t) => t.id === active.id
-          );
-          const newIndex = itemsInContainer.findIndex((t) => t.id === over.id);
-          if (oldIndex === -1 || newIndex === -1) return currentItems;
-          return {
-            ...currentItems,
-            [activeContainer]: arrayMove(itemsInContainer, oldIndex, newIndex),
-          };
-        });
-      }
-    }
     setActiveTask(null);
+    setInitialContainer(null); // ★★★ 4. 記憶したカラムをリセット
+
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const finalContainer = findContainer(activeId);
+
+    // ★★★ 3. 記憶したカラムと最後のカラムを比較 ★★★
+    if (
+      initialContainer &&
+      finalContainer &&
+      initialContainer !== finalContainer
+    ) {
+      onStatusChange(activeId, finalContainer);
+    }
+
+    // 同じコンテナ内での並び替えはonDragOverで処理済みのため、ここでは何もしない
   };
 
   const handleDragCancel = () => {
     document.body.classList.remove("grabbing-custom");
     setActiveTask(null);
+    setInitialContainer(null); // キャンセル時もリセット
   };
 
   return (
