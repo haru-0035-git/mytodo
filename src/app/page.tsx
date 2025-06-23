@@ -26,19 +26,29 @@ export default function Home() {
   }, [isLargeScreen]);
   const toggleNav = () => setNavOpen((prev) => !prev);
 
-  useEffect(() => {
+  const fetchTasks = async () => {
     if (isSignedIn) {
-      const fetchTasks = async () => {
+      try {
         const response = await fetch("/api/tasks");
         if (response.ok) {
           const data = await response.json();
           setItems(data);
+        } else {
+          console.error(
+            "Failed to fetch tasks, server responded with:",
+            response.status
+          );
         }
-      };
-      fetchTasks();
+      } catch (error) {
+        console.error("Error fetching tasks:", error);
+      }
     } else {
       setItems({ ToDo: [], Doing: [], Done: [] });
     }
+  };
+
+  useEffect(() => {
+    fetchTasks();
   }, [isSignedIn]);
 
   const handleOpenAddTaskModal = () => {
@@ -58,26 +68,40 @@ export default function Home() {
 
   const handleFormSubmit = async (taskData: Omit<Task, "id">, id?: string) => {
     if (id) {
-      const response = await fetch(`/api/tasks/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(taskData),
+      // ★★★ ここからが楽観的UI更新のロジック ★★★
+      const oldItems = items; // 1. 更新前の状態を記憶
+
+      // 2. まずフロントエンドの状態を即座に更新
+      setItems((prevItems) => {
+        const newItems = { ...prevItems };
+        for (const columnKey in newItems) {
+          const key = columnKey as ColumnId;
+          newItems[key] = newItems[key].map((task) =>
+            task.id === id ? { ...task, ...taskData } : task
+          );
+        }
+        return newItems;
       });
 
-      if (response.ok) {
-        const updatedTask = await response.json();
-        setItems((prevItems) => {
-          const newItems = { ...prevItems };
-          for (const columnKey in newItems) {
-            const key = columnKey as ColumnId;
-            newItems[key] = newItems[key].map((task) =>
-              task.id === id ? { ...task, ...updatedTask } : task
-            );
-          }
-          return newItems;
+      // 3. 次にバックエンドのAPIを呼び出す
+      try {
+        const response = await fetch(`/api/tasks/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(taskData),
         });
+
+        // 4. もしAPIが失敗したら、UIを元の状態に戻す（ロールバック）
+        if (!response.ok) {
+          console.error("Failed to update task content on server.");
+          setItems(oldItems); // 記憶しておいた古い状態で上書き
+        }
+      } catch (error) {
+        console.error("Error updating task:", error);
+        setItems(oldItems); // ネットワークエラーでもロールバック
       }
     } else {
+      // 新規追加モード（こちらは変更なし）
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,6 +110,8 @@ export default function Home() {
       if (response.ok) {
         const newTask = await response.json();
         setItems((prev) => ({ ...prev, ToDo: [...prev.ToDo, newTask] }));
+      } else {
+        console.error("Failed to create new task.");
       }
     }
   };
@@ -94,17 +120,21 @@ export default function Home() {
     taskId: string,
     newStatusName: ColumnId
   ) => {
-    // フロントエンドのUIはdnd-kitによって楽観的に更新済みなので、
-    // ここではバックエンドのデータベースを更新するAPIを呼び出すだけ。
-    // エラー時のロールバック処理は、より堅牢な実装で検討します。
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      const response = await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newStatusName }),
       });
+      if (!response.ok) {
+        console.error(
+          "Failed to update task status on server. Refetching tasks."
+        );
+        fetchTasks(); // 失敗したら再取得して同期
+      }
     } catch (error) {
       console.error("Failed to update task status:", error);
+      fetchTasks();
     }
   };
 

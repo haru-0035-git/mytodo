@@ -3,7 +3,11 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { query } from "@/lib/db";
 import type { Task, ItemsState, ColumnId } from "@/types/task";
 
-type TaskWithStatus = Task & { status: ColumnId };
+type TaskFromDB = Omit<Task, "dueDate"> & {
+  id: number;
+  limited_at?: Date | null;
+  status: ColumnId;
+};
 
 // ログインしているユーザーのタスクを取得する (GET)
 export async function GET() {
@@ -18,32 +22,27 @@ export async function GET() {
       "SELECT id FROM users WHERE clerk_user_id = ?",
       [clerkUserId]
     );
-
     if (userResult.length === 0) {
       return NextResponse.json({ ToDo: [], Doing: [], Done: [] });
     }
     const internalUserId = userResult[0].id;
 
-    // ★★★ 変更点: SQLクエリを安全な配列結合形式に修正 ★★★
-    const sql = [
-      "SELECT t.*, ts.name as status",
-      "FROM tasks t",
-      "JOIN task_statuses ts ON t.status_id = ts.id",
-      "WHERE t.user_id = ?",
-    ].join(" "); // 半角スペースで結合する
-
-    const tasks = await query<TaskWithStatus[]>(sql, [internalUserId]);
+    const tasksFromDb = await query<TaskFromDB[]>(
+      "SELECT t.*, ts.name as status FROM tasks t JOIN task_statuses ts ON t.status_id = ts.id WHERE t.user_id = ?",
+      [internalUserId]
+    );
 
     const categorizedTasks: ItemsState = { ToDo: [], Doing: [], Done: [] };
-
-    tasks.forEach((task) => {
+    tasksFromDb.forEach((task) => {
       const status = task.status;
       if (status && categorizedTasks.hasOwnProperty(status)) {
-        categorizedTasks[status].push(task);
-      } else {
-        console.warn(
-          `Task with id ${task.id} has an unknown or null status: ${status}`
-        );
+        categorizedTasks[status].push({
+          ...task,
+          id: String(task.id), // idを文字列に変換
+          dueDate: task.limited_at
+            ? new Date(task.limited_at).toISOString().split("T")[0]
+            : undefined,
+        });
       }
     });
 
@@ -59,7 +58,7 @@ export async function GET() {
   }
 }
 
-// 新しいタスクを作成する (POST) - こちらは変更なし
+// 新しいタスクを作成する (POST)
 export async function POST(request: Request) {
   const { userId: clerkUserId } = await auth();
 
@@ -128,7 +127,13 @@ export async function POST(request: Request) {
       newTaskId,
     ]);
 
-    return NextResponse.json(newTasks[0], { status: 201 });
+    // DBから返ってきた数値のIDを文字列に変換して返す
+    const taskToReturn = {
+      ...newTasks[0],
+      id: String(newTasks[0].id),
+    };
+
+    return NextResponse.json(taskToReturn, { status: 201 });
   } catch (error) {
     console.error("API POST Error:", error);
     const errorMessage =

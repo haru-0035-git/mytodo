@@ -216,7 +216,7 @@ export default function KanbanBoard({
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [initialContainer, setInitialContainer] = useState<ColumnId | null>(
     null
-  ); // ★★★ 1. 最初のカラムを記憶するstateを追加
+  );
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
@@ -248,7 +248,7 @@ export default function KanbanBoard({
     const task = findTaskById(taskId);
     setActiveTask(task);
     setExpandedTaskId(null);
-    setInitialContainer(findContainer(taskId) || null); // ★★★ 2. ドラッグ開始時のカラムを記憶
+    setInitialContainer(findContainer(taskId) || null);
     document.body.classList.add("grabbing-custom");
   };
 
@@ -260,7 +260,7 @@ export default function KanbanBoard({
     const activeContainer = findContainer(activeId);
     let overContainer = findContainer(overId);
 
-    if (over.data.current?.isContainer) {
+    if (over.data.current?.isContainer && overContainer === undefined) {
       overContainer = over.id as ColumnId;
     }
 
@@ -292,30 +292,48 @@ export default function KanbanBoard({
   const handleDragEnd = (event: DragEndEvent) => {
     document.body.classList.remove("grabbing-custom");
     setActiveTask(null);
-    setInitialContainer(null); // ★★★ 4. 記憶したカラムをリセット
 
     const { active, over } = event;
-    if (!over) return;
-
-    const activeId = active.id as string;
-    const finalContainer = findContainer(activeId);
-
-    // ★★★ 3. 記憶したカラムと最後のカラムを比較 ★★★
-    if (
-      initialContainer &&
-      finalContainer &&
-      initialContainer !== finalContainer
-    ) {
-      onStatusChange(activeId, finalContainer);
+    if (!over) {
+      setInitialContainer(null);
+      return;
     }
 
-    // 同じコンテナ内での並び替えはonDragOverで処理済みのため、ここでは何もしない
+    const activeId = active.id as string;
+    const overId = over.id as string;
+    const finalContainer = findContainer(activeId);
+
+    // ★★★ 修正点: 並び替えロジックを復活 ★★★
+    if (initialContainer && finalContainer) {
+      // Case 1: カラムが変更された場合
+      if (initialContainer !== finalContainer) {
+        onStatusChange(activeId, finalContainer);
+      }
+      // Case 2: 同じカラム内で並び替えが行われた場合
+      else if (activeId !== overId) {
+        setItems((items) => {
+          const itemsInContainer = items[initialContainer];
+          const oldIndex = itemsInContainer.findIndex((t) => t.id === activeId);
+          const newIndex = itemsInContainer.findIndex((t) => t.id === overId);
+          // 安全のため、インデックスが見つからない場合は何もしない
+          if (oldIndex === -1 || newIndex === -1) {
+            return items;
+          }
+          return {
+            ...items,
+            [initialContainer]: arrayMove(itemsInContainer, oldIndex, newIndex),
+          };
+        });
+      }
+    }
+
+    setInitialContainer(null);
   };
 
   const handleDragCancel = () => {
     document.body.classList.remove("grabbing-custom");
     setActiveTask(null);
-    setInitialContainer(null); // キャンセル時もリセット
+    setInitialContainer(null);
   };
 
   return (
