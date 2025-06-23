@@ -8,6 +8,8 @@ interface TaskFormModalProps {
   onClose: () => void;
   onSubmit: (taskData: Omit<Task, "id">, id?: string) => void;
   initialData?: Task | null;
+  onCancelTask: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => void;
 }
 
 export const TaskFormModal: React.FC<TaskFormModalProps> = ({
@@ -15,19 +17,19 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   onClose,
   onSubmit,
   initialData,
+  onCancelTask,
+  onDeleteTask,
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
 
-  // initialData（編集対象のタスク）が渡されたら、フォームにその内容をセットする
   useEffect(() => {
     if (initialData) {
       setTitle(initialData.title);
       setDescription(initialData.description || "");
       setDueDate(initialData.dueDate || "");
     } else {
-      // 新規追加の場合はフォームを空にする
       setTitle("");
       setDescription("");
       setDueDate("");
@@ -39,10 +41,29 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!title.trim()) return;
-
-    // initialDataがあれば編集モード、なければ新規追加モードとしてデータを渡す
     onSubmit({ title, description, dueDate }, initialData?.id);
     onClose();
+  };
+
+  const handleCancelClick = () => {
+    if (initialData?.id) {
+      onCancelTask(initialData.id);
+      onClose();
+    }
+  };
+
+  const handleDeleteClick = () => {
+    if (initialData?.id) {
+      // window.confirmの代わりにカスタムのUIを使うのが望ましいが、一旦これで実装
+      if (
+        confirm(
+          `タスク「${initialData.title}」を本当に削除しますか？この操作は取り消せません。`
+        )
+      ) {
+        onDeleteTask(initialData.id);
+        onClose();
+      }
+    }
   };
 
   return (
@@ -75,20 +96,43 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               className="w-full p-2 border rounded-md text-black"
             />
           </div>
-          <div className="flex justify-end gap-4 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-transparent rounded-md hover:bg-gray-300"
-            >
-              キャンセル
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
-            >
-              {initialData ? "更新する" : "タスクを追加"}
-            </button>
+
+          <div className="flex justify-between items-center mt-6">
+            <div>
+              {initialData && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCancelClick}
+                    className="px-3 py-2 text-sm text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                  >
+                    中止
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteClick}
+                    className="px-3 py-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700"
+                  >
+                    削除
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-gray-700 bg-transparent rounded-md hover:bg-gray-300"
+              >
+                キャンセル
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+              >
+                {initialData ? "更新する" : "追加"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

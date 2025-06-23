@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { jaJP } from "@clerk/localizations";
+import { AppStateProvider } from "@/contexts/StateContext";
+// ★★★ レイアウト関連のコンポーネントをここでインポート ★★★
+import { LayoutController } from "../components/LayoutController";
 import "./globals.css";
-// import { Inter } from "next/font/google"; // デフォルトのフォント読み込みを簡略化
-
-// const inter = Inter({ subsets: ["latin"] }); // 使われていなければ削除
 
 export const metadata: Metadata = {
   title: "TaskFlow",
@@ -18,9 +18,13 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider localization={jaJP}>
-      {/* <body>タグからフォントクラスを削除 */}
       <html lang="ja">
-        <body>{children}</body>
+        <body>
+          <AppStateProvider>
+            {/* ★★★ LayoutControllerがレイアウトを管理 ★★★ */}
+            <LayoutController>{children}</LayoutController>
+          </AppStateProvider>
+        </body>
       </html>
     </ClerkProvider>
   );

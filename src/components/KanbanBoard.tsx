@@ -15,7 +15,6 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  arrayMove,
   verticalListSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
@@ -206,11 +205,21 @@ export default function KanbanBoard({
   setItems,
   onEditTask,
   onStatusChange,
+  onOrderChange,
 }: {
   items: ItemsState;
   setItems: React.Dispatch<React.SetStateAction<ItemsState>>;
   onEditTask: (task: Task) => void;
-  onStatusChange: (taskId: string, newStatusName: ColumnId) => void;
+  onStatusChange: (
+    taskId: string,
+    sourceColumn: ColumnId,
+    destinationColumn: ColumnId
+  ) => void;
+  onOrderChange: (
+    columnId: ColumnId,
+    oldIndex: number,
+    newIndex: number
+  ) => void;
 }) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
@@ -225,14 +234,6 @@ export default function KanbanBoard({
     setExpandedTaskId((prevId) => (prevId === taskId ? null : taskId));
   };
 
-  const findTaskById = (id: string) => {
-    for (const column of Object.values(items)) {
-      const task = column.find((t) => t.id === id);
-      if (task) return task;
-    }
-    return null;
-  };
-
   const findContainer = (id: string): ColumnId | undefined => {
     if (id in items) return id as ColumnId;
     for (const key in items) {
@@ -245,8 +246,10 @@ export default function KanbanBoard({
 
   const handleDragStart = (event: DragStartEvent) => {
     const taskId = event.active.id as string;
-    const task = findTaskById(taskId);
-    setActiveTask(task);
+    const task = Object.values(items)
+      .flat()
+      .find((t) => t.id === taskId);
+    setActiveTask(task || null);
     setExpandedTaskId(null);
     setInitialContainer(findContainer(taskId) || null);
     document.body.classList.add("grabbing-custom");
@@ -303,27 +306,16 @@ export default function KanbanBoard({
     const overId = over.id as string;
     const finalContainer = findContainer(activeId);
 
-    // ★★★ 修正点: 並び替えロジックを復活 ★★★
     if (initialContainer && finalContainer) {
-      // Case 1: カラムが変更された場合
       if (initialContainer !== finalContainer) {
-        onStatusChange(activeId, finalContainer);
-      }
-      // Case 2: 同じカラム内で並び替えが行われた場合
-      else if (activeId !== overId) {
-        setItems((items) => {
-          const itemsInContainer = items[initialContainer];
-          const oldIndex = itemsInContainer.findIndex((t) => t.id === activeId);
-          const newIndex = itemsInContainer.findIndex((t) => t.id === overId);
-          // 安全のため、インデックスが見つからない場合は何もしない
-          if (oldIndex === -1 || newIndex === -1) {
-            return items;
-          }
-          return {
-            ...items,
-            [initialContainer]: arrayMove(itemsInContainer, oldIndex, newIndex),
-          };
-        });
+        onStatusChange(activeId, initialContainer, finalContainer);
+      } else if (activeId !== overId) {
+        const itemsInContainer = items[initialContainer];
+        const oldIndex = itemsInContainer.findIndex((t) => t.id === activeId);
+        const newIndex = itemsInContainer.findIndex((t) => t.id === overId);
+        if (oldIndex !== -1 && newIndex !== -1) {
+          onOrderChange(initialContainer, oldIndex, newIndex);
+        }
       }
     }
 

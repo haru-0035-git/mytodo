@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Header } from "./Header";
 import { Navigation } from "./Navigation";
 import { ToggleButton } from "./ToggleButton";
@@ -12,7 +12,7 @@ interface LayoutProps {
   isLargeScreen: boolean;
   toggleNav: () => void;
   onOpenModal: () => void;
-  isSignedIn: boolean; // ★★★ 追加
+  isSignedIn: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -22,15 +22,23 @@ const Layout: React.FC<LayoutProps> = ({
   isLargeScreen,
   toggleNav,
   onOpenModal,
-  isSignedIn, // ★★★ 追加
+  isSignedIn,
 }) => {
+  // ★★★ 変更点 1: マウント状態を管理するstateを追加 ★★★
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    // ページが表示された後に、マウント状態をtrueにする
+    setHasMounted(true);
+  }, []);
+
   return (
     <div className="relative flex min-h-screen bg-gray-100">
       <Navigation
         open={isNavOpen}
         onClose={toggleNav}
         onOpenModal={onOpenModal}
-        isSignedIn={isSignedIn} // ★★★ 追加
+        isSignedIn={isSignedIn}
       />
 
       <div className="fixed top-4 left-4 z-40">
@@ -43,9 +51,10 @@ const Layout: React.FC<LayoutProps> = ({
       </div>
 
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
-          isLargeScreen && isNavOpen ? "ml-80" : "ml-0"
-        }`}
+        // ★★★ 変更点 2: マウント後にのみアニメーションクラスを適用 ★★★
+        className={`flex-1 flex flex-col ${
+          hasMounted ? "transition-all duration-300 ease-in-out" : ""
+        } ${isLargeScreen && isNavOpen ? "ml-80" : "ml-0"}`}
       >
         <Header />
 

@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import Link from "next/link"; // Linkコンポーネントをインポート
+import { PlusIcon, ArchiveBoxIcon } from "@heroicons/react/24/outline"; // ArchiveBoxIconを追加
 
-// isSignedInプロパティを追加
 interface NavigationProps {
   open: boolean;
   onClose: () => void;
   onOpenModal: () => void;
-  isSignedIn: boolean; // ★★★ 追加
+  isSignedIn: boolean;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -43,7 +43,6 @@ export const Navigation: React.FC<NavigationProps> = ({
             メニュー
           </h2>
           <ul className="space-y-2">
-            {/* ★★★ ログインしている時のみボタンを表示 ★★★ */}
             {isSignedIn && (
               <li>
                 <button
@@ -56,13 +55,26 @@ export const Navigation: React.FC<NavigationProps> = ({
               </li>
             )}
             <li>
-              <a
-                href="#"
+              <Link
+                href="/"
                 className="block p-2 text-black hover:bg-gray-200 rounded whitespace-nowrap"
               >
                 ボード
-              </a>
+              </Link>
             </li>
+            {/* ★★★ ここからが追加部分 ★★★ */}
+            {isSignedIn && (
+              <li>
+                <Link
+                  href="/canceled"
+                  className="flex items-center gap-2 p-2 text-black hover:bg-gray-200 rounded whitespace-nowrap"
+                >
+                  <ArchiveBoxIcon className="h-5 w-5" />
+                  <span>中止したタスク</span>
+                </Link>
+              </li>
+            )}
+            {/* ★★★ ここまでが追加部分 ★★★ */}
           </ul>
         </div>
       </nav>

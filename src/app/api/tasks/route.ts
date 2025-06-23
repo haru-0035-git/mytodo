@@ -1,18 +1,18 @@
-import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { NextResponse, type NextRequest } from "next/server";
+// ★ 変更点: 未使用の 'currentUser' を削除
+import { auth } from "@clerk/nextjs/server";
 import { query } from "@/lib/db";
-import type { Task, ItemsState, ColumnId } from "@/types/task";
+import type { Task, ItemsState, ColumnId, StatusName } from "@/types/task";
 
 type TaskFromDB = Omit<Task, "dueDate"> & {
   id: number;
   limited_at?: Date | null;
-  status: ColumnId;
+  status: StatusName;
 };
 
-// ログインしているユーザーのタスクを取得する (GET)
+// GET - ログインしているユーザーのタスクを取得する
 export async function GET() {
   const { userId: clerkUserId } = await auth();
-
   if (!clerkUserId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -28,17 +28,17 @@ export async function GET() {
     const internalUserId = userResult[0].id;
 
     const tasksFromDb = await query<TaskFromDB[]>(
-      "SELECT t.*, ts.name as status FROM tasks t JOIN task_statuses ts ON t.status_id = ts.id WHERE t.user_id = ?",
+      "SELECT t.*, ts.name as status FROM tasks t JOIN task_statuses ts ON t.status_id = ts.id WHERE t.user_id = ? AND ts.name != 'canceled'",
       [internalUserId]
     );
 
     const categorizedTasks: ItemsState = { ToDo: [], Doing: [], Done: [] };
     tasksFromDb.forEach((task) => {
-      const status = task.status;
+      const status = task.status as ColumnId;
       if (status && categorizedTasks.hasOwnProperty(status)) {
         categorizedTasks[status].push({
           ...task,
-          id: String(task.id), // idを文字列に変換
+          id: String(task.id),
           dueDate: task.limited_at
             ? new Date(task.limited_at).toISOString().split("T")[0]
             : undefined,
@@ -58,8 +58,9 @@ export async function GET() {
   }
 }
 
-// 新しいタスクを作成する (POST)
-export async function POST(request: Request) {
+// POST - 新しいタスクを作成する
+export async function POST(request: NextRequest) {
+  // ★ 変更点: RequestをNextRequestに
   const { userId: clerkUserId } = await auth();
 
   if (!clerkUserId) {
@@ -73,25 +74,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    let userResult = await query<{ id: number }[]>(
+    // ★ 変更点: ユーザーがDBに存在しない場合の自動作成ロジックを削除
+    // Clerkで認証されたユーザーは、既にDBに存在していることを前提とします。
+    const userResult = await query<{ id: number }[]>(
       "SELECT id FROM users WHERE clerk_user_id = ?",
       [clerkUserId]
     );
 
     if (userResult.length === 0) {
-      const user = await currentUser();
-      const email = user?.emailAddresses[0]?.emailAddress;
-      if (!email) {
-        return NextResponse.json(
-          { error: "User email not found in Clerk" },
-          { status: 400 }
-        );
-      }
-      const newUserResult = await query<{ insertId: number }>(
-        "INSERT INTO users (clerk_user_id, name, email) VALUES (?, ?, ?)",
-        [clerkUserId, user?.firstName || "New User", email]
+      // ユーザーが見つからない場合はエラーを返します
+      return NextResponse.json(
+        { error: "Authenticated user not found in database." },
+        { status: 404 }
       );
-      userResult = [{ id: newUserResult.insertId }];
     }
     const internalUserId = userResult[0].id;
 
@@ -127,11 +122,7 @@ export async function POST(request: Request) {
       newTaskId,
     ]);
 
-    // DBから返ってきた数値のIDを文字列に変換して返す
-    const taskToReturn = {
-      ...newTasks[0],
-      id: String(newTasks[0].id),
-    };
+    const taskToReturn = { ...newTasks[0], id: String(newTasks[0].id) };
 
     return NextResponse.json(taskToReturn, { status: 201 });
   } catch (error) {
