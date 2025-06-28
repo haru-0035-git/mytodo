@@ -9,7 +9,6 @@ export default function CanceledTasksPage() {
   const [canceledTasks, setCanceledTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { isSignedIn } = useAuth();
-  // Contextからタスクを再開するための専用関数を取得
   const { handleResumeTask } = useAppState();
 
   const fetchCanceledTasks = useCallback(async () => {
@@ -33,14 +32,10 @@ export default function CanceledTasksPage() {
     fetchCanceledTasks();
   }, [fetchCanceledTasks]);
 
-  // 「再開」ボタンがクリックされた時の処理
   const onResumeClick = async (taskToResume: Task) => {
-    // 1. まずこのページのリストから、再開するタスクを即座に削除する
     setCanceledTasks((prevTasks) =>
       prevTasks.filter((t) => t.id !== taskToResume.id)
     );
-
-    // 2. Contextの関数を呼び出し、DB更新とメインボードへのタスク追加を依頼する
     await handleResumeTask(taskToResume);
   };
 

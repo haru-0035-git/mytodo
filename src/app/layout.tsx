@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { jaJP } from "@clerk/localizations";
 import { AppStateProvider } from "@/contexts/StateContext";
-// ★★★ レイアウト関連のコンポーネントをここでインポート ★★★
-import { LayoutController } from "../components/LayoutController";
+import { LayoutController } from "@/components/LayoutController";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,7 +20,7 @@ export default function RootLayout({
       <html lang="ja">
         <body>
           <AppStateProvider>
-            {/* ★★★ LayoutControllerがレイアウトを管理 ★★★ */}
+            {/* このLayoutControllerが全ページのレイアウトを管理 */}
             <LayoutController>{children}</LayoutController>
           </AppStateProvider>
         </body>

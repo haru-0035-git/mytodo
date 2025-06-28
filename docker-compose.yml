@@ -3,6 +3,7 @@ version: "3.8"
 services:
   # Next.jsアプリケーションのサービス
   next-app:
+    image: 254885646821.dkr.ecr.ap-northeast-1.amazonaws.com/taskflow-app:latest
     build:
       context: .
       args:
