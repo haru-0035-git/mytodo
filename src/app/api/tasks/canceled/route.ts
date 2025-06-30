@@ -28,14 +28,38 @@ export async function GET() {
     });
 
     // フロントエンドで使いやすいようにデータを整形
-    const canceledTasks: Task[] = tasksFromDb.map((task) => ({
-      ...task,
-      id: String(task.id),
-      dueDate: task.limited_at
-        ? new Date(task.limited_at).toISOString().split("T")[0]
-        : undefined,
-      description: task.description === null ? undefined : task.description,
-    }));
+    interface TaskFromDb {
+      id: number;
+      title: string;
+      description: string | null;
+      limited_at: Date | null;
+      created_at: Date;
+      updated_at: Date;
+      statusId: number;
+      userId: number;
+      status: {
+        name: string;
+      };
+      user: {
+        clerk_user_id: string;
+      };
+      // 他にDBのtaskテーブルにカラムがあればここに追加
+    }
+
+    interface CanceledTask extends Task {
+      dueDate?: string;
+    }
+
+    const canceledTasks: CanceledTask[] = tasksFromDb.map(
+      (task: TaskFromDb): CanceledTask => ({
+        ...task,
+        id: String(task.id),
+        dueDate: task.limited_at
+          ? new Date(task.limited_at).toISOString().split("T")[0]
+          : undefined,
+        description: task.description === null ? undefined : task.description,
+      })
+    );
 
     return NextResponse.json(canceledTasks);
   } catch (error) {

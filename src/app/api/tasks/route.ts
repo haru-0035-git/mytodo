@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import prisma from "@/lib/prisma"; // Prisma Clientをインポート
-import type { Task, ItemsState, ColumnId, StatusName } from "@/types/task";
+import { NextResponse, type NextRequest } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import prisma from "@/lib/prisma";
+import type { Task, ItemsState, ColumnId } from "@/types/task"; // ★ 変更点: 未使用のStatusNameを削除
 
 // GET - ログインしているユーザーのタスクを取得する
 export async function GET() {
@@ -14,10 +14,13 @@ export async function GET() {
     const tasks = await prisma.task.findMany({
       where: {
         user: { clerk_user_id: clerkUserId },
-        NOT: { status: { name: "canceled" } }, // 中止タスクは除外
+        NOT: { status: { name: "canceled" } },
       },
       include: {
-        status: true, // ステータス情報を結合して取得
+        status: true,
+      },
+      orderBy: {
+        created_at: "asc",
       },
     });
 
@@ -31,7 +34,6 @@ export async function GET() {
           dueDate: task.limited_at
             ? new Date(task.limited_at).toISOString().split("T")[0]
             : undefined,
-          description: task.description === null ? undefined : task.description,
         });
       }
     });
@@ -47,7 +49,7 @@ export async function GET() {
 }
 
 // POST - 新しいタスクを作成する
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -58,17 +60,16 @@ export async function POST(request: Request) {
     if (!title)
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
 
-    // ユーザーが存在しなければ作成し、存在すればそのユーザーに接続する (Upsert)
-    const user = await currentUser();
-    const dbUser = await prisma.user.upsert({
+    const dbUser = await prisma.user.findUnique({
       where: { clerk_user_id: clerkUserId },
-      update: {},
-      create: {
-        clerk_user_id: clerkUserId,
-        name: user?.firstName || "New User",
-        email: user?.emailAddresses[0]?.emailAddress || "",
-      },
     });
+
+    if (!dbUser) {
+      return NextResponse.json(
+        { error: "User not found in our database." },
+        { status: 404 }
+      );
+    }
 
     const todoStatus = await prisma.taskStatus.findUnique({
       where: { name: "ToDo" },
