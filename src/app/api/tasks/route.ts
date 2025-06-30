@@ -25,15 +25,30 @@ export async function GET() {
     });
 
     const categorizedTasks: ItemsState = { ToDo: [], Doing: [], Done: [] };
-    tasks.forEach((task) => {
+    interface PrismaTask {
+      id: number;
+      title: string;
+      description: string | null;
+      limited_at: Date | null;
+      status: { name: string } | null;
+      [key: string]: any;
+    }
+
+    interface CategorizedTasks extends ItemsState {}
+
+    tasks.forEach((task: PrismaTask) => {
       const status = task.status?.name as ColumnId;
-      if (status && categorizedTasks.hasOwnProperty(status)) {
-        categorizedTasks[status].push({
+      if (
+        status &&
+        (categorizedTasks as CategorizedTasks).hasOwnProperty(status)
+      ) {
+        (categorizedTasks as CategorizedTasks)[status].push({
           ...task,
           id: String(task.id),
           dueDate: task.limited_at
             ? new Date(task.limited_at).toISOString().split("T")[0]
             : undefined,
+          description: task.description === null ? undefined : task.description,
         });
       }
     });
