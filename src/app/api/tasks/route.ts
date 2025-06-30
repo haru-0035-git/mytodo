@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
-import type { Task, ItemsState, ColumnId } from "@/types/task"; // ★ 変更点: 未使用のStatusNameを削除
+import type { Task, ItemsState, ColumnId } from "@/types/task";
+
+type TaskWithStatus = Task & { status: ColumnId };
 
 // GET - ログインしているユーザーのタスクを取得する
 export async function GET() {
@@ -17,47 +19,38 @@ export async function GET() {
         NOT: { status: { name: "canceled" } },
       },
       include: {
-        status: true,
+        status: true, // ステータス情報を結合して取得
       },
       orderBy: {
         created_at: "asc",
       },
     });
 
-    const categorizedTasks: ItemsState = { ToDo: [], Doing: [], Done: [] };
-    interface PrismaTask {
-      id: number;
-      title: string;
-      description: string | null;
-      limited_at: Date | null;
-      status: { name: string } | null;
-      [key: string]: any;
-    }
-
-    interface CategorizedTasks extends ItemsState {}
-
-    tasks.forEach((task: PrismaTask) => {
-      const status = task.status?.name as ColumnId;
-      if (
-        status &&
-        (categorizedTasks as CategorizedTasks).hasOwnProperty(status)
-      ) {
-        (categorizedTasks as CategorizedTasks)[status].push({
-          ...task,
-          id: String(task.id),
-          dueDate: task.limited_at
-            ? new Date(task.limited_at).toISOString().split("T")[0]
-            : undefined,
-          description: task.description === null ? undefined : task.description,
-        });
-      }
-    });
+    // ★★★ 変更点: reduceの引数に型を明示的に指定 ★★★
+    const categorizedTasks = tasks.reduce(
+      (acc: ItemsState, task: any) => {
+        const status = task.status?.name as ColumnId;
+        if (status && acc.hasOwnProperty(status)) {
+          acc[status].push({
+            ...task,
+            id: String(task.id),
+            dueDate: task.limited_at
+              ? new Date(task.limited_at).toISOString().split("T")[0]
+              : undefined,
+          });
+        }
+        return acc;
+      },
+      { ToDo: [], Doing: [], Done: [] } as ItemsState
+    );
 
     return NextResponse.json(categorizedTasks);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("API GET Error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
-      { error: "Failed to fetch tasks" },
+      { error: "Failed to fetch tasks", details: errorMessage },
       { status: 500 }
     );
   }
@@ -105,10 +98,12 @@ export async function POST(request: NextRequest) {
       { ...newTask, id: String(newTask.id) },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("API POST Error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
-      { error: "Failed to create task" },
+      { error: "Failed to create task", details: errorMessage },
       { status: 500 }
     );
   }
