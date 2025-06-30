@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma"; // Prisma Clientをインポート
-import type { Task, ColumnId, StatusName } from "@/types/task";
+import type { Task, StatusName } from "@/types/task"; // ★ 変更点: 未使用のColumnIdを削除
 
 // 特定のタスクの「内容」を更新する (PUT)
 export async function PUT(
