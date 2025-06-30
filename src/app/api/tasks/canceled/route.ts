@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { query } from "@/lib/db";
+import prisma from "@/lib/prisma"; // Prisma Clientをインポート
 import type { Task } from "@/types/task";
-
-type TaskFromDB = Omit<Task, "dueDate"> & {
-  id: number;
-  limited_at?: Date | null;
-};
 
 // ステータスが'canceled'のタスクのみを取得する (GET)
 export async function GET() {
@@ -16,20 +11,21 @@ export async function GET() {
   }
 
   try {
-    const userResult = await query<{ id: number }[]>(
-      "SELECT id FROM users WHERE clerk_user_id = ?",
-      [clerkUserId]
-    );
-    if (userResult.length === 0) {
-      return NextResponse.json([]); // ユーザーが見つからなければ空の配列を返す
-    }
-    const internalUserId = userResult[0].id;
-
-    // 'canceled'ステータスのタスクのみを取得する
-    const tasksFromDb = await query<TaskFromDB[]>(
-      "SELECT t.* FROM tasks t JOIN task_statuses ts ON t.status_id = ts.id WHERE t.user_id = ? AND ts.name = 'canceled'",
-      [internalUserId]
-    );
+    // Prismaを使って、ログインユーザーの、ステータスが'canceled'のタスクを取得
+    const tasksFromDb = await prisma.task.findMany({
+      where: {
+        user: {
+          clerk_user_id: clerkUserId,
+        },
+        status: {
+          name: "canceled",
+        },
+      },
+      // 念のため作成日時の新しい順で並び替え
+      orderBy: {
+        created_at: "desc",
+      },
+    });
 
     // フロントエンドで使いやすいようにデータを整形
     const canceledTasks: Task[] = tasksFromDb.map((task) => ({
@@ -38,6 +34,7 @@ export async function GET() {
       dueDate: task.limited_at
         ? new Date(task.limited_at).toISOString().split("T")[0]
         : undefined,
+      description: task.description === null ? undefined : task.description,
     }));
 
     return NextResponse.json(canceledTasks);

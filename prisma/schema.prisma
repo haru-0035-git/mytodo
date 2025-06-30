@@ -1,41 +1,42 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// 1. データソースの設定
+// データソースの設定
 datasource db {
-  provider = "mysql"
+  // ★★★ 変更点: providerをmysqlからpostgresqlに変更 ★★★
+  provider = "postgresql" 
   url      = env("DATABASE_URL")
 }
 
-// 2. Prisma Clientの生成設定
+// Prisma Clientの生成設定
 generator client {
-  // ★★★ 変更点: providerを正しい名前に修正 ★★★
   provider = "prisma-client-js"
 }
 
-// 3. データベースモデルの定義
+// --- データベースモデルの定義 ---
+// (MySQLからPostgreSQLへの移行に伴い、型の微調整とマッピングを更新)
 
-// Clerkと連携するUserモデル
 model User {
   id            Int      @id @default(autoincrement())
-  clerk_user_id String   @unique @map("clerk_user_id") // DBのカラム名とマッピング
+  clerk_user_id String   @unique
   name          String
   email         String   @unique
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
-  tasks         Task[]   // Userは複数のTaskを持つ (リレーション)
+
+  tasks         Task[]   // Userは複数のTaskを持つ
+
+  @@map("users") // テーブル名を小文字のスネークケースに
 }
 
-// タスクのステータスモデル
 model TaskStatus {
   id    Int    @id @default(autoincrement())
   name  String @unique
-  tasks Task[] // TaskStatusは複数のTaskを持つ (リレーション)
+  tasks Task[]
 
-  @@map("task_statuses") // テーブル名をDBと一致させる
+  @@map("task_statuses")
 }
 
-// タスクモデル
 model Task {
   id          Int       @id @default(autoincrement())
   user_id     Int
@@ -44,12 +45,12 @@ model Task {
   status_id   Int?
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
-  tags        Json      @default("[]")
+  tags        Json?     @default("[]") // PostgreSQLではJson型をネイティブにサポート
   limited_at  DateTime?
 
   // リレーションの定義
   user   User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
   status TaskStatus? @relation(fields: [status_id], references: [id], onDelete: SetNull)
 
-  @@map("tasks") // テーブル名をDBと一致させる
+  @@map("tasks")
 }
