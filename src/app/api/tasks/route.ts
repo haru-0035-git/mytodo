@@ -3,7 +3,21 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import type { Task, ItemsState, ColumnId } from "@/types/task";
 
-type TaskWithStatus = Task & { status: ColumnId };
+// Prismaから返ってくるデータの型を定義
+type TaskFromDB = {
+  id: number;
+  user_id: number;
+  title: string;
+  description: string | null;
+  status_id: number | null;
+  created_at: Date;
+  updated_at: Date;
+  tags: any;
+  limited_at: Date | null;
+  status: {
+    name: string;
+  } | null;
+};
 
 // GET - ログインしているユーザーのタスクを取得する
 export async function GET() {
@@ -19,24 +33,24 @@ export async function GET() {
         NOT: { status: { name: "canceled" } },
       },
       include: {
-        status: true, // ステータス情報を結合して取得
+        status: true,
       },
       orderBy: {
         created_at: "asc",
       },
     });
 
-    // ★★★ 変更点: reduceの引数に型を明示的に指定 ★★★
     const categorizedTasks = tasks.reduce(
-      (acc: ItemsState, task: any) => {
+      (acc: ItemsState, task: TaskFromDB) => {
         const status = task.status?.name as ColumnId;
         if (status && acc.hasOwnProperty(status)) {
           acc[status].push({
             ...task,
             id: String(task.id),
+            // ★★★ 変更点: undefinedの代わりにnullを返すように修正 ★★★
             dueDate: task.limited_at
               ? new Date(task.limited_at).toISOString().split("T")[0]
-              : undefined,
+              : null,
           });
         }
         return acc;

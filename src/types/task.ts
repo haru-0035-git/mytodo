@@ -1,8 +1,9 @@
 export interface Task {
   id: string;
   title: string;
-  description?: string;
-  dueDate?: string;
+  // ★★★ 変更点: undefinedをnullに統一 ★★★
+  description?: string | null;
+  dueDate?: string | null;
 }
 
 // DB上の全ステータスを定義
