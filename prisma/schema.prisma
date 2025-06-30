@@ -5,12 +5,13 @@
 datasource db {
   // ★★★ 変更点: providerをmysqlからpostgresqlに変更 ★★★
   provider = "postgresql" 
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL_WITH_ADAPTER")
 }
 
 // Prisma Clientの生成設定
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 // --- データベースモデルの定義 ---
