@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import prisma from "@/lib/prisma"; // Prisma Clientをインポート
+import prisma from "@/lib/prisma";
 import type { Task } from "@/types/task";
 
 // ステータスが'canceled'のタスクのみを取得する (GET)
@@ -11,7 +11,6 @@ export async function GET() {
   }
 
   try {
-    // Prismaを使って、ログインユーザーの、ステータスが'canceled'のタスクを取得
     const tasksFromDb = await prisma.task.findMany({
       where: {
         user: {
@@ -21,51 +20,27 @@ export async function GET() {
           name: "canceled",
         },
       },
-      // 念のため作成日時の新しい順で並び替え
       orderBy: {
         created_at: "desc",
       },
     });
 
-    // フロントエンドで使いやすいようにデータを整形
-    interface TaskFromDb {
-      id: number;
-      title: string;
-      description: string | null;
-      limited_at: Date | null;
-      created_at: Date;
-      updated_at: Date;
-      statusId: number;
-      userId: number;
-      status: {
-        name: string;
-      };
-      user: {
-        clerk_user_id: string;
-      };
-      // 他にDBのtaskテーブルにカラムがあればここに追加
-    }
-
-    interface CanceledTask extends Task {
-      dueDate?: string;
-    }
-
-    const canceledTasks: CanceledTask[] = tasksFromDb.map(
-      (task: TaskFromDb): CanceledTask => ({
-        ...task,
-        id: String(task.id),
-        dueDate: task.limited_at
-          ? new Date(task.limited_at).toISOString().split("T")[0]
-          : undefined,
-        description: task.description === null ? undefined : task.description,
-      })
-    );
+    // ★★★ 変更点: mapの引数から明示的な型定義を削除 ★★★
+    // TypeScriptが 'tasksFromDb' から 'task' の型を正しく推論します。
+    const canceledTasks: Task[] = tasksFromDb.map((task) => ({
+      ...task,
+      id: String(task.id),
+      dueDate: task.limited_at
+        ? new Date(task.limited_at).toISOString().split("T")[0]
+        : null,
+      description: task.description || null,
+    }));
 
     return NextResponse.json(canceledTasks);
   } catch (error) {
     console.error("API GET (canceled) Error:", error);
     const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
       { error: "Failed to fetch canceled tasks", details: errorMessage },
       { status: 500 }

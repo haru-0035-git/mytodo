@@ -4,7 +4,6 @@ import prisma from "@/lib/prisma";
 import type { Task, ItemsState, ColumnId } from "@/types/task";
 
 // Prismaから返ってくるデータの型を定義
-// tags: any → tags: unknown[]
 type TaskFromDB = {
   id: number;
   user_id: number;
@@ -13,7 +12,7 @@ type TaskFromDB = {
   status_id: number | null;
   created_at: Date;
   updated_at: Date;
-  tags: unknown[]; // Json型は配列で受ける想定
+  tags: any;
   limited_at: Date | null;
   status: {
     name: string;
