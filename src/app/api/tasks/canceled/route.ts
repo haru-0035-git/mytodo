@@ -2,8 +2,22 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import type { Task } from "@/types/task";
+import type { JsonValue } from "@prisma/client/runtime/library"; // ★★★ Prismaの型をインポート
 
-// ステータスが'canceled'のタスクのみを取得する (GET)
+// ★★★ 追加: Prismaから返ってくるデータの型を正確に定義 ★★★
+type CanceledTaskFromDB = {
+  id: number;
+  user_id: number;
+  title: string;
+  description: string | null;
+  status_id: number | null;
+  created_at: Date;
+  updated_at: Date;
+  tags: JsonValue;
+  limited_at: Date | null;
+};
+
+// GET - ステータスが'canceled'のタスクのみを取得する
 export async function GET() {
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) {
@@ -25,20 +39,11 @@ export async function GET() {
       },
     });
 
-    // ★★★ 変更点: mapの引数から明示的な型定義を削除 ★★★
-    // TypeScriptが 'tasksFromDb' から 'task' の型を正しく推論します。
-    interface TaskFromDb {
-      id: number;
-      limited_at: Date | null;
-      description?: string | null;
-      [key: string]: any;
-    }
-
+    // ★★★ 変更点: mapの引数に明示的な型を指定 ★★★
     const canceledTasks: Task[] = tasksFromDb.map(
-      (task: TaskFromDb): Task => ({
+      (task: CanceledTaskFromDB) => ({
         ...task,
         id: String(task.id),
-        title: task.title ?? "", // Ensure title is present; adjust as needed
         dueDate: task.limited_at
           ? new Date(task.limited_at).toISOString().split("T")[0]
           : null,
