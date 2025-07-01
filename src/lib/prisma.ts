@@ -1,24 +1,32 @@
-// src/lib/prisma.ts
-
 import { PrismaClient } from "@prisma/client";
+import { Pool } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
 
-// PrismaClientのインスタンスをグローバルに宣言
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+// PrismaClientのインスタンスを生成する関数を定義
+const prismaClientSingleton = () => {
+  const neon = new Pool({ connectionString: process.env.DATABASE_URL! });
+  const adapter = new PrismaNeon(neon);
 
-// 開発環境では、ホットリロードでファイルが再実行されるたびに
-// 新しいPrismaClientが作られてしまうのを防ぐ
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    // 開発時に実行されたクエリをコンソールに表示する設定
+  return new PrismaClient({
+    adapter,
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "info", "warn", "error"]
         : [],
   });
+};
+
+// グローバルオブジェクトの型を拡張
+type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClientSingleton | undefined;
+};
+
+// 開発環境では既存のインスタンスを使い回し、本番環境では新しいインスタンスを作成
+const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
+
+export default prisma;
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
-
-export default prisma;
