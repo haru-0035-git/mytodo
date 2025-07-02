@@ -3,22 +3,31 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import type { Task, StatusName } from "@/types/task";
 
+// ルートハンドラの2番目の引数の型を定義します
+type RouteContext = {
+  params: {
+    taskId: string;
+  };
+};
+
 // 特定のタスクの「内容」を更新する (PUT)
-export async function PUT(
-  request: NextRequest,
-  // ★★★ 変更点: 型チェックとESLintの両方を回避 ★★★
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
-) {
+export async function PUT(request: NextRequest, { params }: RouteContext) {
+  // auth()はApp Routerのルートハンドラでは同期的です。awaitは不要です。
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId)
+  if (!clerkUserId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
-    const taskId = parseInt(context.params.taskId, 10);
+    const taskId = parseInt(params.taskId, 10);
+    if (isNaN(taskId)) {
+      return NextResponse.json({ error: "Invalid task ID" }, { status: 400 });
+    }
+
     const { title, description, dueDate }: Partial<Task> = await request.json();
-    if (!title)
+    if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
 
     const updatedTask = await prisma.task.update({
       where: {
@@ -60,29 +69,29 @@ export async function PUT(
 }
 
 // 特定のタスクの「ステータス」を更新する (PATCH)
-export async function PATCH(
-  request: NextRequest,
-  // ★★★ 変更点: 型チェックとESLintの両方を回避 ★★★
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
-) {
+export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId)
+  if (!clerkUserId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
-    const taskId = parseInt(context.params.taskId, 10);
+    const taskId = parseInt(params.taskId, 10);
+    if (isNaN(taskId)) {
+      return NextResponse.json({ error: "Invalid task ID" }, { status: 400 });
+    }
     const { newStatusName }: { newStatusName: StatusName } =
       await request.json();
 
     const status = await prisma.taskStatus.findUnique({
       where: { name: newStatusName },
     });
-    if (!status)
+    if (!status) {
       return NextResponse.json(
         { error: "Invalid status name" },
         { status: 400 }
       );
+    }
 
     await prisma.task.update({
       where: {
@@ -108,18 +117,17 @@ export async function PATCH(
 }
 
 // 特定のタスクを削除する (DELETE)
-export async function DELETE(
-  _request: NextRequest,
-  // ★★★ 変更点: 型チェックとESLintの両方を回避 ★★★
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
-) {
+export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId)
+  if (!clerkUserId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
-    const taskId = parseInt(context.params.taskId, 10);
+    const taskId = parseInt(params.taskId, 10);
+    if (isNaN(taskId)) {
+      return NextResponse.json({ error: "Invalid task ID" }, { status: 400 });
+    }
 
     await prisma.task.delete({
       where: {
