@@ -25,6 +25,7 @@ const prisma =
   new PrismaClient({
     // Vercelのビルド環境で発生する型エラーを回避するため、
     // `adapter` を `any` 型としてキャストし、型チェックを一時的に無効化します。
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     adapter: adapter as any,
     log:
       process.env.NODE_ENV === "development"
