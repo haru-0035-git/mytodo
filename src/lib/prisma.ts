@@ -9,8 +9,6 @@ const connectionString = `${process.env.DATABASE_URL}`;
 const pool = new Pool({ connectionString });
 
 // 作成したプールを基に、Prisma-Neonアダプタを初期化します。
-// Vercelのビルド環境で発生する型エラーを回避するため、
-// `pool` を `any` 型としてキャストし、型チェックを一時的に無効化します。
 // 以下の行でESLintのエラーも意図的に無効化しています。
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const adapter = new PrismaNeon(pool as any);
@@ -25,7 +23,9 @@ declare global {
 const prisma =
   global.prisma ||
   new PrismaClient({
-    adapter,
+    // Vercelのビルド環境で発生する型エラーを回避するため、
+    // `adapter` を `any` 型としてキャストし、型チェックを一時的に無効化します。
+    adapter: adapter as any,
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]
