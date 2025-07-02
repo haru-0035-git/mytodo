@@ -6,9 +6,9 @@ import type { Task, StatusName } from "@/types/task";
 // 特定のタスクの「内容」を更新する (PUT)
 export async function PUT(
   request: NextRequest,
-  // Next.jsのApp Routerが期待する正しい型定義に修正
   { params }: { params: { taskId: string } }
 ) {
+  // ★★★ 修正点: auth()は非同期のため、awaitを追加しました ★★★
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -69,6 +69,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
+  // ★★★ 修正点: auth()は非同期のため、awaitを追加しました ★★★
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -120,6 +121,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
+  // ★★★ 修正点: auth()は非同期のため、awaitを追加しました ★★★
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
