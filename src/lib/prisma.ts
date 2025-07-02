@@ -5,11 +5,13 @@ import { Pool } from "@neondatabase/serverless";
 const prismaClientSingleton = () => {
   const connectionString = `${process.env.DATABASE_URL}`;
   const pool = new Pool({ connectionString });
-  const adapter = new PrismaNeon(pool);
+
+  // ★★★ 修正点: Vercelのビルドエラーを回避するため、`pool`を`any`型としてキャストします ★★★
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adapter = new PrismaNeon(pool as any);
 
   return new PrismaClient({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    adapter: adapter as any,
+    adapter, // ここでのキャストは不要なため削除しました
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]
@@ -18,7 +20,6 @@ const prismaClientSingleton = () => {
 };
 
 declare global {
-  // ★★★ 修正点: ログに出ていた不要な警告を解消するため、ESLint無効化コメントを削除しました ★★★
   var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
 }
 
