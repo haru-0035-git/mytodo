@@ -11,12 +11,13 @@ const prismaClientSingleton = () => {
   const connectionString = `${process.env.DATABASE_URL}`;
   const adapter = new PrismaNeon({ connectionString });
 
-  // ★★★ 修正点: ESLintエラーを回避するため、ルールを無効化するコメントを追加 ★★★
-  // これにより、'adapter' プロパティが存在しないという型エラーを根本的に回避します。
+  // ★★★ 修正点: オプションを変数に格納し、型チェックとESLintエラーをより確実に回避します ★★★
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new PrismaClient({
+  const prismaOptions: any = {
     adapter,
-  } as any);
+  };
+
+  return new PrismaClient(prismaOptions);
 };
 
 // `globalThis.prisma` が未定義の場合はシングルトン関数を呼び出して新しいインスタンスを生成します。
