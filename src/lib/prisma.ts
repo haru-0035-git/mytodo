@@ -11,8 +11,9 @@ const prismaClientSingleton = () => {
   const connectionString = `${process.env.DATABASE_URL}`;
   const adapter = new PrismaNeon({ connectionString });
 
-  // ★★★ 修正点: オプションオブジェクト全体を 'any' にキャストします ★★★
+  // ★★★ 修正点: ESLintエラーを回避するため、ルールを無効化するコメントを追加 ★★★
   // これにより、'adapter' プロパティが存在しないという型エラーを根本的に回避します。
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new PrismaClient({
     adapter,
   } as any);
