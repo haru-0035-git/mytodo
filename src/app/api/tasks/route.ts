@@ -1,14 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { query } from "@/lib/db";
-import type { Task, ItemsState, ColumnId } from "@/types/task"; // ★ 変更点: 未使用のStatusNameを削除
+import prisma from "@/lib/prisma";
+import type { Task, ItemsState, ColumnId } from "@/types/task";
+import type { Prisma } from "@prisma/client";
 
-// ★ 変更点: TaskFromDBが使う型をColumnIdに変更
-type TaskFromDB = Omit<Task, "dueDate"> & {
-  id: number;
-  limited_at?: Date | null;
-  status: ColumnId;
-};
+// PrismaのfindManyとincludeから返されるタスクの正確な型を定義します
+// ★★★ 修正点: モデル名'Task'に合わせて 'TaskGetPayload' に修正します ★★★
+type TaskWithStatus = Prisma.TaskGetPayload<{
+  include: {
+    status: true;
+  };
+}>;
 
 // GET - ログインしているユーザーのタスクを取得する
 export async function GET() {
@@ -18,27 +20,37 @@ export async function GET() {
   }
 
   try {
-    const userResult = await query<{ id: number }[]>(
-      "SELECT id FROM users WHERE clerk_user_id = ?",
-      [clerkUserId]
-    );
-    if (userResult.length === 0) {
+    const user = await prisma.user.findUnique({
+      where: { clerk_user_id: clerkUserId },
+    });
+
+    if (!user) {
       return NextResponse.json({ ToDo: [], Doing: [], Done: [] });
     }
-    const internalUserId = userResult[0].id;
 
-    const tasksFromDb = await query<TaskFromDB[]>(
-      "SELECT t.*, ts.name as status FROM tasks t JOIN task_statuses ts ON t.status_id = ts.id WHERE t.user_id = ? AND ts.name != 'canceled'",
-      [internalUserId]
-    );
+    const tasksFromDb: TaskWithStatus[] = await prisma.task.findMany({
+      where: {
+        user_id: user.id,
+        NOT: {
+          status: {
+            name: "canceled",
+          },
+        },
+      },
+      include: {
+        status: true,
+      },
+    });
 
     const categorizedTasks: ItemsState = { ToDo: [], Doing: [], Done: [] };
-    tasksFromDb.forEach((task) => {
-      const status = task.status;
-      if (status && categorizedTasks.hasOwnProperty(status)) {
+    tasksFromDb.forEach((task: TaskWithStatus) => {
+      const status = task.status?.name as ColumnId | undefined;
+
+      if (status && status in categorizedTasks) {
         categorizedTasks[status].push({
-          ...task,
           id: String(task.id),
+          title: task.title,
+          description: task.description ?? undefined,
           dueDate: task.limited_at
             ? new Date(task.limited_at).toISOString().split("T")[0]
             : undefined,
@@ -67,64 +79,50 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { title, description, dueDate }: Partial<Task> = await request.json();
+    const { title, description, dueDate } =
+      (await request.json()) as Partial<Task>;
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    const userResult = await query<{ id: number }[]>(
-      "SELECT id FROM users WHERE clerk_user_id = ?",
-      [clerkUserId]
-    );
+    const user = await prisma.user.findUnique({
+      where: { clerk_user_id: clerkUserId },
+    });
 
-    if (userResult.length === 0) {
+    if (!user) {
       return NextResponse.json(
         { error: "Authenticated user not found in database." },
         { status: 404 }
       );
     }
-    const internalUserId = userResult[0].id;
 
-    const statusResult = await query<{ id: number }[]>(
-      "SELECT id FROM task_statuses WHERE name = 'ToDo'",
-      []
-    );
-
-    if (statusResult.length === 0) {
-      console.error(
-        "Database seed error: 'ToDo' status not found in task_statuses table."
-      );
-      return NextResponse.json(
-        { error: "'ToDo' status is not configured in the database." },
-        { status: 500 }
-      );
-    }
-    const todoStatusId = statusResult[0].id;
-
-    const result = await query<{ insertId: number }>(
-      "INSERT INTO tasks (user_id, title, description, limited_at, status_id) VALUES (?, ?, ?, ?, ?)",
-      [
-        internalUserId,
+    const newTask = await prisma.task.create({
+      data: {
         title,
-        description || null,
-        dueDate || null,
-        todoStatusId,
-      ]
-    );
+        description: description || null,
+        limited_at: dueDate ? new Date(dueDate) : null,
+        user: {
+          connect: { id: user.id },
+        },
+        status: {
+          connect: { name: "ToDo" },
+        },
+      },
+    });
 
-    const newTaskId = result.insertId;
-    const newTasks = await query<Task[]>("SELECT * FROM tasks WHERE id = ?", [
-      newTaskId,
-    ]);
-
-    const taskToReturn = { ...newTasks[0], id: String(newTasks[0].id) };
+    const taskToReturn = {
+      ...newTask,
+      id: String(newTask.id),
+      description: newTask.description ?? undefined,
+    };
 
     return NextResponse.json(taskToReturn, { status: 201 });
   } catch (error) {
     console.error("API POST Error:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
+
     return NextResponse.json(
       { error: "Failed to create task", details: errorMessage },
       { status: 500 }

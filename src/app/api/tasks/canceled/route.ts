@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import prisma from "@/lib/prisma"; // Prisma Clientをインポート
-import type { Task } from "@/types/task";
+import prisma from "@/lib/prisma";
+import type { Task } from "@/types/task"; // これはフロントエンド用のカスタム型
+// ★★★ 修正点: Prismaが生成した正しい'Task'型（大文字）をインポートします ★★★
+import type { Task as PrismaTask } from "@prisma/client";
 
 // ステータスが'canceled'のタスクのみを取得する (GET)
 export async function GET() {
@@ -21,16 +23,16 @@ export async function GET() {
           name: "canceled",
         },
       },
-      // 念のため作成日時の新しい順で並び替え
       orderBy: {
         created_at: "desc",
       },
     });
 
     // フロントエンドで使いやすいようにデータを整形
-    const canceledTasks: Task[] = tasksFromDb.map((task) => ({
-      ...task,
+    const canceledTasks: Task[] = tasksFromDb.map((task: PrismaTask) => ({
       id: String(task.id),
+      title: task.title,
+      status: "canceled", // ステータスは'canceled'で確定
       dueDate: task.limited_at
         ? new Date(task.limited_at).toISOString().split("T")[0]
         : undefined,

@@ -1,37 +1,34 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
-import { Pool } from "@neondatabase/serverless";
+// ★★★ 修正点: Poolは不要になったため、インポートを削除しました ★★★
+// import { Pool } from "@neondatabase/serverless";
 
 // グローバルなprismaインスタンスの型を定義します。
 declare global {
   var prisma: PrismaClient | undefined;
 }
 
-// PrismaClientのインスタンスを生成するシングルトン関数
+// PrismaClientのインスタンスを一度だけ生成するシングルトン関数
 const prismaClientSingleton = () => {
-  const connectionString = `${process.env.DATABASE_URL}`;
+  const connectionString = process.env.DATABASE_URL_WITH_ADAPTER;
 
-  // ★★★ 修正点: Poolの初期化を再度行います ★★★
-  // 'isServer'エラーはPoolの初期化プロセスに問題があることを示唆しているため、
-  // 明示的にPoolを作成し、型キャストでビルドエラーを回避するアプローチに戻します。
-  const pool = new Pool({ connectionString });
+  // ★★★ これが最も重要な修正点です ★★★
+  // Prisma 6.6.0以降の正しい初期化方法です。
+  // Poolを使わず、PrismaNeonアダプタに直接接続文字列を渡します。
+  const adapter = new PrismaNeon({ connectionString });
 
-  // ★★★ 修正点: Vercelのビルドエラーを回避するため、`pool`を`any`型としてキャストします ★★★
+  // Vercelのビルド環境で発生する型エラーを回避するための最終手段としてのキャスト
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const adapter = new PrismaNeon(pool as any);
-
-  return new PrismaClient({
-    adapter,
-  });
+  return new PrismaClient({ adapter } as any);
 };
 
-// `globalThis.prisma` が未定義の場合はシングルトン関数を呼び出して新しいインスタンスを生成します。
+// globalThisオブジェクトにprismaインスタンスが存在すればそれを使い、なければ新しく作成します。
 const prisma = globalThis.prisma ?? prismaClientSingleton();
 
-// アプリケーション全体で使用するために、単一のインスタンスをエクスポートします。
+// アプリケーション全体で使えるように、単一のインスタンスをエクスポートします。
 export default prisma;
 
-// 本番環境以外では、生成したインスタンスをグローバルオブジェクトに保存します。
+// 本番環境以外では、ホットリロードでインスタンスが増えないようにグローバルに保存します。
 if (process.env.NODE_ENV !== "production") {
   globalThis.prisma = prisma;
 }
