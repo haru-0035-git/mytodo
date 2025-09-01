@@ -4,7 +4,12 @@ import React, { useState } from "react";
 import { TaskItem } from "@/components/TaskItem";
 import { Task } from "@/types/task";
 
-export function TodoList({ tasks, onEditTask }) {
+interface TodoListProps {
+  tasks: Task[];
+  onEditTask: (task: Task) => void;
+}
+
+export function TodoList({ tasks, onEditTask }: TodoListProps) {
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
   const handleTaskClick = (taskId: string) => {
