@@ -9,6 +9,7 @@ interface NavigationProps {
   onClose: () => void;
   onOpenModal: () => void;
   isSignedIn: boolean;
+  pathname: string;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -16,6 +17,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onClose,
   onOpenModal,
   isSignedIn,
+  pathname,
 }) => {
   const navClasses = `
     fixed
@@ -35,6 +37,18 @@ export const Navigation: React.FC<NavigationProps> = ({
     ${open ? "opacity-100" : "opacity-0 pointer-events-none"}
   `;
 
+  const getLinkClasses = (path: string, isFlex: boolean = false) => {
+    const isActive = pathname === path;
+    const baseClasses = isFlex
+      ? "flex items-center gap-2"
+      : "block whitespace-nowrap";
+    const activeClasses = "bg-gray-300 text-black";
+    const inactiveClasses = "text-black hover:bg-gray-200";
+    return `${baseClasses} p-2 rounded ${
+      isActive ? activeClasses : inactiveClasses
+    }`;
+  };
+
   return (
     <>
       <nav className={navClasses}>
@@ -47,7 +61,7 @@ export const Navigation: React.FC<NavigationProps> = ({
               <li>
                 <button
                   onClick={onOpenModal}
-                  className="w-full flex items-center gap-2 p-2 text-black hover:bg-gray-200 rounded"
+                  className="flex items-center justify-center gap-2 p-2 px-4 rounded bg-blue-500 text-white hover:bg-blue-600"
                 >
                   <PlusIcon className="h-5 w-5" />
                   <span>タスクを追加</span>
@@ -55,26 +69,18 @@ export const Navigation: React.FC<NavigationProps> = ({
               </li>
             )}
             <li>
-              <Link
-                href="/"
-                className="block p-2 text-black hover:bg-gray-200 rounded whitespace-nowrap"
-              >
+              <Link href="/" className={getLinkClasses("/")}>
                 ボード
               </Link>
             </li>
-            {/* ★★★ ここからが追加部分 ★★★ */}
             {isSignedIn && (
               <li>
-                <Link
-                  href="/canceled"
-                  className="flex items-center gap-2 p-2 text-black hover:bg-gray-200 rounded whitespace-nowrap"
-                >
+                <Link href="/canceled" className={getLinkClasses("/canceled", true)}>
                   <ArchiveBoxIcon className="h-5 w-5" />
                   <span>中止したタスク</span>
                 </Link>
               </li>
             )}
-            {/* ★★★ ここまでが追加部分 ★★★ */}
           </ul>
         </div>
       </nav>

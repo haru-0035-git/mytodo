@@ -21,7 +21,8 @@ export default function CanceledTasksPage() {
           setCanceledTasks(data);
         }
       } catch (error) {
-        console.error("Failed to fetch canceled tasks:", error);
+        void error; // suppressed error logging
+        return null;
       } finally {
         setIsLoading(false);
       }

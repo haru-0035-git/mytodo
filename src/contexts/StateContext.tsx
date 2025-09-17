@@ -38,7 +38,12 @@ interface AppStateContextType {
   ) => void;
   handleCancelTask: (taskId: string) => Promise<void>;
   handleDeleteTask: (taskId: string) => Promise<void>;
-  handleResumeTask: (resumedTask: Task) => Promise<void>; // ★★★ 追加
+  handleResumeTask: (resumedTask: Task) => Promise<void>;
+  handleDescriptionChange: (
+    taskId: string,
+    newDescription: string
+  ) => Promise<void>;
+  updateCounter: number; // 追加: カウンターを型に含める
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(
@@ -62,6 +67,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   }, [isLargeScreen]);
   const toggleNav = () => setNavOpen((prev) => !prev);
 
+  const [updateCounter, setUpdateCounter] = useState(0); // New state
+
   const fetchTasks = useCallback(async () => {
     if (isSignedIn) {
       try {
@@ -71,7 +78,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
           setItems(data);
         }
       } catch (error) {
-        console.error("Error fetching tasks:", error);
+        void error; // suppressed error logging
       }
     } else {
       setItems({ ToDo: [], Doing: [], Done: [] });
@@ -118,7 +125,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         });
         if (!response.ok) setItems(oldItems);
       } catch (error) {
-        console.error("Failed to update task content:", error);
+        void error; // suppressed error logging
         setItems(oldItems);
       }
     } else {
@@ -133,8 +140,61 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
           setItems((prev) => ({ ...prev, ToDo: [...prev.ToDo, newTask] }));
         }
       } catch (error) {
-        console.error("Failed to create new task:", error);
+        void error; // suppressed error logging
       }
+    }
+  };
+
+  const handleDescriptionChange = async (
+    taskId: string,
+    newDescription: string
+  ) => {
+    const oldItems = items;
+    let taskToUpdate: Task | undefined;
+    for (const column of Object.values(items)) {
+      taskToUpdate = column.find((t: Task) => t.id === taskId);
+      if (taskToUpdate) break;
+    }
+
+    if (!taskToUpdate) {
+      // suppressed: task not found
+      return;
+    }
+
+    setItems((prevItems) => {
+      const newItems = { ...prevItems };
+      for (const columnKey in newItems) {
+        const key = columnKey as ColumnId;
+        const taskIndex = newItems[key].findIndex((t) => t.id === taskId);
+        if (taskIndex !== -1) {
+          const newColumn = [...newItems[key]];
+          newColumn[taskIndex] = {
+            ...newColumn[taskIndex],
+            description: newDescription,
+          };
+          newItems[key] = newColumn;
+          break;
+        }
+      }
+      return newItems;
+    });
+    setUpdateCounter((prev) => prev + 1); // Increment counter
+
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: taskToUpdate.title,
+          description: newDescription,
+        }),
+      });
+      if (!response.ok) {
+        setItems(oldItems);
+      }
+    } catch (error) {
+      void error; // suppressed error logging
+      setItems(oldItems);
     }
   };
 
@@ -161,7 +221,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({ newStatusName: "canceled" as StatusName }),
       });
     } catch (error) {
-      console.error("Failed to cancel task:", error);
+      void error; // suppressed error logging
       setItems(oldItems);
     }
   };
@@ -174,7 +234,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         method: "DELETE",
       });
     } catch (error) {
-      console.error("Failed to delete task:", error);
+      void error; // suppressed error logging
       setItems(oldItems);
     }
   };
@@ -205,7 +265,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({ newStatusName: destinationColumn }),
       });
     } catch (error) {
-      console.error("ステータス更新に失敗しました。", error);
+      void error; // suppressed error logging
       setItems(oldItems);
     }
   };
@@ -235,14 +295,14 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (!response.ok) {
-        console.error("Failed to resume task, rolling back UI change.");
+        // suppressed error logging
         setItems((prev) => ({
           ...prev,
           ToDo: prev.ToDo.filter((t) => t.id !== resumedTask.id),
         }));
       }
     } catch (error) {
-      console.error("Error resuming task:", error);
+      void error; // suppressed error logging
       setItems((prev) => ({
         ...prev,
         ToDo: prev.ToDo.filter((t) => t.id !== resumedTask.id),
@@ -267,6 +327,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     handleCancelTask,
     handleDeleteTask,
     handleResumeTask,
+    handleDescriptionChange,
+    updateCounter,
   };
 
   return (
@@ -276,10 +338,11 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// 安全にコンテキストを取得するカスタムフックをエクスポート
 export const useAppState = () => {
   const context = useContext(AppStateContext);
   if (context === undefined) {
-    throw new Error("useAppState must be used within a AppStateProvider");
+    throw new Error("useAppState must be used within AppStateProvider");
   }
   return context;
 };

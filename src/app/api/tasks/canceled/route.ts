@@ -40,10 +40,10 @@ export async function GET() {
     }));
 
     return NextResponse.json(canceledTasks);
-  } catch (error) {
-    console.error("API GET (canceled) Error:", error);
+  } catch (error: unknown) {
+    // suppressed error logging
     const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
       { error: "Failed to fetch canceled tasks", details: errorMessage },
       { status: 500 }

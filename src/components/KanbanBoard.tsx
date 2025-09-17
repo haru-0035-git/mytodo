@@ -43,7 +43,7 @@ function Column({
   onTaskClick: (id: string) => void;
 }) {
   const { setNodeRef } = useSortable({ id, data: { isContainer: true } });
-  const taskIds = tasks.map((task) => task.id);
+  const taskIds = React.useMemo(() => tasks.map((task) => task.id), [tasks]);
 
   return (
     <SortableContext
@@ -53,7 +53,7 @@ function Column({
     >
       <div
         ref={setNodeRef}
-        className="flex flex-col flex-1 p-2 mx-2 bg-gray-300 rounded-lg min-h-[200px]"
+        className="flex flex-col flex-1 p-2 mx-2 bg-gray-300 rounded-lg h-full"
       >
         <h3
           className={`w-full px-2 pb-2 text-lg font-semibold ${columnTitleColor[id]}`}
@@ -213,7 +213,7 @@ export default function KanbanBoard({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="flex justify-around w-full p-5 pt-0 box-border">
+      <div className="flex justify-around w-full p-5 pt-0 box-border flex-grow h-[calc(100vh-150px)]">
         {Object.keys(items).map((columnId) => (
           <Column
             key={columnId}

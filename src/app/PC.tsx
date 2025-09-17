@@ -17,7 +17,7 @@ export default function PC() {
   const { isSignedIn } = useAuth();
 
   return (
-    <>
+    <div className="h-full flex flex-col">
       {isSignedIn ? (
         <KanbanBoard
           items={items}
@@ -33,6 +33,6 @@ export default function PC() {
           </p>
         </div>
       )}
-    </>
+    </div>
   );
 }

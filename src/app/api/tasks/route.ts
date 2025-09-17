@@ -59,10 +59,9 @@ export async function GET() {
     });
 
     return NextResponse.json(categorizedTasks);
-  } catch (error) {
-    console.error("API GET Error:", error);
+  } catch (error: unknown) {
     const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
       { error: "Failed to fetch tasks", details: errorMessage },
       { status: 500 }
@@ -118,11 +117,9 @@ export async function POST(request: NextRequest) {
     };
 
     return NextResponse.json(taskToReturn, { status: 201 });
-  } catch (error) {
-    console.error("API POST Error:", error);
+  } catch (error: unknown) {
     const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
       { error: "Failed to create task", details: errorMessage },
       { status: 500 }

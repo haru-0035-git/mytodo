@@ -13,6 +13,7 @@ interface LayoutProps {
   toggleNav: () => void;
   onOpenModal: () => void;
   isSignedIn: boolean;
+  pathname: string;
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -23,6 +24,7 @@ const Layout: React.FC<LayoutProps> = ({
   toggleNav,
   onOpenModal,
   isSignedIn,
+  pathname,
 }) => {
   // ★★★ 変更点 1: マウント状態を管理するstateを追加 ★★★
   const [hasMounted, setHasMounted] = useState(false);
@@ -33,12 +35,13 @@ const Layout: React.FC<LayoutProps> = ({
   }, []);
 
   return (
-    <div className="relative flex min-h-screen bg-gray-100">
+    <div className="relative flex flex-col min-h-screen bg-gray-100">
       <Navigation
         open={isNavOpen}
         onClose={toggleNav}
         onOpenModal={onOpenModal}
         isSignedIn={isSignedIn}
+        pathname={pathname}
       />
 
       <div className="fixed top-4 left-4 z-40">
@@ -58,9 +61,9 @@ const Layout: React.FC<LayoutProps> = ({
       >
         <Header />
 
-        <main className="flex-grow p-4">{children}</main>
+        <main className="flex-grow p-4 overflow-y-auto pb-16">{children}</main>
 
-        <footer className="p-4 bg-white border-t">{footer}</footer>
+        <footer className="fixed bottom-0 left-0 w-full p-4 bg-white border-t z-10">{footer}</footer>
       </div>
     </div>
   );

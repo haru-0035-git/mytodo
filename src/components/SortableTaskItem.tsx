@@ -44,6 +44,7 @@ export function SortableTaskItem({
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <TaskItem
+        key={task.id + task.description}
         task={task}
         onEditTask={onEditTask}
         isExpanded={isExpanded}

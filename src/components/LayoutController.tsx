@@ -54,6 +54,7 @@ export function LayoutController({ children }: { children: React.ReactNode }) {
         toggleNav={toggleNav}
         onOpenModal={handleOpenAddTaskModal}
         isSignedIn={!!isSignedIn}
+        pathname={pathname}
       >
         {children}
       </Layout>

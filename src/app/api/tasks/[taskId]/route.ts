@@ -55,14 +55,12 @@ export async function PUT(
     };
 
     return NextResponse.json(taskToReturn);
-  } catch (error) {
-    console.error("API PUT Error:", error);
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
-      {
-        error:
-          "Failed to update task. Record to update not found or forbidden.",
-      },
-      { status: 404 }
+      { error: "Failed to update task", details: errorMessage },
+      { status: 500 }
     );
   }
 }
@@ -102,14 +100,12 @@ export async function PATCH(
     });
 
     return NextResponse.json({ message: "Status updated successfully" });
-  } catch (error) {
-    console.error("API PATCH Error:", error);
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
-      {
-        error:
-          "Failed to update task status. Record to update not found or forbidden.",
-      },
-      { status: 404 }
+      { error: "Failed to patch task", details: errorMessage },
+      { status: 500 }
     );
   }
 }
@@ -143,14 +139,12 @@ export async function DELETE(
       { message: "Task deleted successfully" },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("API DELETE Error:", error);
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
-      {
-        error:
-          "Failed to delete task. Record to delete not found or forbidden.",
-      },
-      { status: 404 }
+      { error: "Failed to delete task", details: errorMessage },
+      { status: 500 }
     );
   }
 }
