@@ -16,7 +16,8 @@ export async function PUT(
   }
 
   try {
-    const taskId = parseInt(context.params.taskId, 10);
+    const params = await context.params;
+    const taskId = parseInt(params.taskId, 10);
     if (isNaN(taskId)) {
       return NextResponse.json({ error: "Invalid task ID" }, { status: 400 });
     }
@@ -78,7 +79,8 @@ export async function PATCH(
   }
 
   try {
-    const taskId = parseInt(context.params.taskId, 10);
+    const params = await context.params;
+    const taskId = parseInt(params.taskId, 10);
     if (isNaN(taskId)) {
       return NextResponse.json({ error: "Invalid task ID" }, { status: 400 });
     }
@@ -123,7 +125,8 @@ export async function DELETE(
   }
 
   try {
-    const taskId = parseInt(context.params.taskId, 10);
+    const params = await context.params;
+    const taskId = parseInt(params.taskId, 10);
     if (isNaN(taskId)) {
       return NextResponse.json({ error: "Invalid task ID" }, { status: 400 });
     }

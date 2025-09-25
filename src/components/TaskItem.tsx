@@ -61,7 +61,7 @@ export const TaskItem = React.memo(function TaskItem({
               <Checklist task={task} content={task.description} />
             ) : task.description ? (
               <div className="mt-2 text-sm text-gray-600">
-                {task.description}
+                <ReactMarkdown>{task.description}</ReactMarkdown>
               </div>
             ) : null}
           </div>
