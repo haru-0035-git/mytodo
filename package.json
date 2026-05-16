@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@clerk/localizations": "^3.16.5",
-    "@clerk/nextjs": "^6.22.0",
+    "@clerk/nextjs": "6.39.3",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -20,7 +20,7 @@
     "@prisma/client": "^6.11.1",
     "@types/ws": "^8.18.1",
     "mysql2": "^3.14.1",
-    "next": "15.3.3",
+    "next": "15.5.18",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
@@ -34,7 +34,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.3.3",
+    "eslint-config-next": "15.5.18",
     "prisma": "^6.11.1",
     "tailwindcss": "^4",
     "typescript": "^5"
