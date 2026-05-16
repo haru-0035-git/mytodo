@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, FormEvent } from "react";
+import React, { useState, useEffect, FormEvent, KeyboardEvent } from "react";
 import type { Task } from "@/types/task";
 
 interface TaskFormModalProps {
@@ -45,6 +45,19 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     onClose();
   };
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (
+      event.key !== "Enter" ||
+      !event.shiftKey ||
+      event.nativeEvent.isComposing
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.requestSubmit();
+  };
+
   const handleCancelClick = () => {
     if (initialData?.id) {
       onCancelTask(initialData.id);
@@ -69,7 +82,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
           <h3 className="text-lg font-bold mb-4">
             {initialData ? "タスクを編集" : "新しいタスクを追加"}
           </h3>

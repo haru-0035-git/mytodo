@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, FormEvent } from "react";
+import React, { useState, FormEvent, KeyboardEvent } from "react";
 import type { Task } from "../types/task"; // 修正: '@/types/task' を './types/task' に変更
 
 interface AddTaskModalProps {
@@ -31,12 +31,25 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
     setDueDate("");
   };
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (
+      event.key !== "Enter" ||
+      !event.shiftKey ||
+      event.nativeEvent.isComposing
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.requestSubmit();
+  };
+
   return (
     // オーバーレイ
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       {/* モーダル本体 */}
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
           <h3 className="text-lg font-bold mb-4">新しいタスクを追加</h3>
           <div className="space-y-4">
             <input

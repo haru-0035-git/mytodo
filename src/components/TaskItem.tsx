@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import ReactMarkdown from "react-markdown";
 import type { Task } from "@/types/task";
 import { Checklist } from "./Checklist";
+import { MarkdownContent } from "./MarkdownContent";
 
 export const TaskItem = React.memo(function TaskItem({
   task,
@@ -41,14 +41,7 @@ export const TaskItem = React.memo(function TaskItem({
       onDoubleClick={() => onEditTask(task)}
     >
       <div className="w-full text-black">
-        <ReactMarkdown
-          components={{
-            p: ({ children }) => <>{children}</>,
-            h2: (props) => <h2 className="text-lg font-bold" {...props} />,
-          }}
-        >
-          {`## ${task.title}`}
-        </ReactMarkdown>
+        <h2 className="text-lg font-bold">{task.title}</h2>
       </div>
 
       <div
@@ -57,11 +50,13 @@ export const TaskItem = React.memo(function TaskItem({
       >
         <div className="overflow-hidden">
           <div className="pt-2">
-            {task.description && /```checklist\s*/.test(task.description) ? (
+            {task.description &&
+            (/```checklist\s*/.test(task.description) ||
+              /^\s*[-*+]\s+\[[ xX]\]\s+/m.test(task.description)) ? (
               <Checklist task={task} content={task.description} />
             ) : task.description ? (
               <div className="mt-2 text-sm text-gray-600">
-                <ReactMarkdown>{task.description}</ReactMarkdown>
+                <MarkdownContent>{task.description}</MarkdownContent>
               </div>
             ) : null}
           </div>
